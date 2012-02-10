@@ -1,0 +1,7 @@
+To compile:
+
+For verbose version:
+    g++ -Wall -DVERBOSE -O3 -o subset_sum subset_sum_main.cpp
+
+For quiet (faster) version:
+    g++ -Wall -O3 -o subset_sum subset_sum_main.cpp
