@@ -235,10 +235,10 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
  */
 long double fac(unsigned int n) {
     long double result = 1;
-    for (unsigned int i = 1; i < n; i++) {
+    for (unsigned int i = 1; i <= n; i++) {
         result *= i;
     }
-    printf("result: %Lf\n", result);
+//    printf("result: %Lf\n", result);
     return result;
 }
 
@@ -247,20 +247,14 @@ int main(int argc, char** argv) {
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
 
-#ifdef VERBOSE
-    long double expected_total = fac(max_set_value) / (fac(subset_size) * fac(max_set_value - subset_size));
-    printf("the expected total number of sets is: %Lf\n", expected_total);
-#endif
-
-
     /**
      *  Get the maximum set length (in bits) so we can use this for printing out the values cleanly.
      */
     unsigned int *max_set = new unsigned int[subset_size];
     for (unsigned int i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
-    printf("max set: ");
-    print_subset(max_set, subset_size);
-    printf("\n");
+//    printf("max set: ");
+//    print_subset(max_set, subset_size);
+//    printf("\n");
 
     for (unsigned int i = 0; i < subset_size; i++) {
         max_sums_length += max_set[i];
@@ -312,8 +306,12 @@ int main(int argc, char** argv) {
 
     }
 
-    //pass + fail should = M! / (N! * (M - N)!)
+    /**
+     * pass + fail should = M! / (N! * (M - N)!)
+     */
+    long double expected_total = fac(max_set_value) / (fac(subset_size) * fac(max_set_value - subset_size));
 
+    printf("the expected total number of sets is: %Lf\n", expected_total);
     printf("%lld total sets, %lld sets passed, %lld sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
     delete [] subset;
