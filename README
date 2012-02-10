@@ -11,14 +11,19 @@ To run:
 
 
 TODO:
-    *   Double check that the 'all_ones', 'or_single', 'or_equal' and 'shift_left' functions are working correctly.
+    *   Double check that the 'all_ones', 'or_single', 'or_equal' and 
+        'shift_left' functions are working correctly.
 
-    *   Update the code so that instead of checking all sums up to the sum of all set elements, we only need to check up to
-        the sum of all set elements divided by 2 (as the sums are symmetric).
+    *   Update the code so that instead of checking all sums up to the 
+        sum of all set elements, we only need to check up to the sum 
+        of all set elements divided by 2 (as the sums are symmetric).
 
-    *   Update the code that we can give it a slice of sets to calculate, as opposed to all sets for an M (max set value) 
-        and N (number of elements).  The command line arguments should be ./subset_sum <M> <N> <first subset> <number of subsets>,
-        where the first subset is the Nth generated subset, and the number of subsets is the number it should calculate.
+    *   Update the code that we can give it a slice of sets to calculate, 
+        as opposed to all sets for an M (max set value) and N (number of 
+        elements).  The command line arguments should be:
+            ./subset_sum <M> <N> <first subset> <number of subsets>,
+        where the first subset is the Nth generated subset, and the number 
+        of subsets is the number it should calculate.
 
 BUGS:
     None so far.
