@@ -5,6 +5,8 @@
 
 const int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
+unsigned long int max_sums_length;
+
 /**
  *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
  */
@@ -170,8 +172,6 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     unsigned int M = 0; // M is the max value in the subset
     unsigned int max_subset_sum = 0; //the sum of all values in the subset
 
-
-    unsigned long int bits_in_an_int = sizeof(int) * 8;
     unsigned long int sums_length = 0;
     for (unsigned int i = 0; i < subset_size; i++) {
         sums_length += subset[i];
@@ -181,7 +181,7 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     M = subset[subset_size - 1];
 
 //    printf("subset requires %ld bits.\n", sums_length);
-    sums_length /= bits_in_an_int;
+    sums_length /= ELEMENT_SIZE;
     sums_length++;
 //    printf("which is %ld unsigned ints.\n", sums_length);
 
@@ -216,6 +216,9 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     }
 
 #ifdef VERBOSE
+    if (sums_length < max_sums_length) {
+        for (unsigned int i = 0; i < (max_sums_length - sums_length); i++) print_bits(0);
+    }
     print_bit_array(sums, sums_length);
 #endif
 
@@ -248,6 +251,25 @@ int main(int argc, char** argv) {
     long double expected_total = fac(max_set_value) / (fac(subset_size) * fac(max_set_value - subset_size));
     printf("the expected total number of sets is: %Lf\n", expected_total);
 #endif
+
+
+    /**
+     *  Get the maximum set length (in bits) so we can use this for printing out the values cleanly.
+     */
+    unsigned int *max_set = new unsigned int[subset_size];
+    for (unsigned int i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
+    printf("max set: ");
+    print_subset(max_set, subset_size);
+    printf("\n");
+
+    for (unsigned int i = 0; i < subset_size; i++) {
+        max_sums_length += max_set[i];
+    }
+//    sums_length /= 2;
+    max_sums_length /= ELEMENT_SIZE;
+    max_sums_length++;
+
+    delete [] max_set;
 
     unsigned int *subset = new unsigned int[subset_size];
     for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
