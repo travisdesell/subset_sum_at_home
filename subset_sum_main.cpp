@@ -297,7 +297,7 @@ static inline long double n_choose_k(unsigned int n, unsigned int k) {
     return expected_total;
 }
 
-static inline void generate_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
+static inline void generate_ith_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
     unsigned int pos = 0;
     unsigned int current_value = 1;
     long double nck;
@@ -320,25 +320,67 @@ static inline void generate_subset(unsigned long long i, unsigned int *subset, u
 
 }
 
+static inline void generate_next_subset_td(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
+    unsigned int current = subset_size - 1;
+    subset[current]++;
+    while (current > 0 && subset[current] > (max_set_value - (subset_size - (current + 1)))) {
+        subset[current - 1]++;
+        current --;
+    }
+    while (current < subset_size - 1) {
+        subset[current + 1] = subset[current] + 1;
+        current++;
+    }
+}
+
+/**
+ * Jun: changes start
+ * This algorithm keeps track of the bubbles between two adjacent elements in a subset.
+ * Notion: N = subset_size; M = max_set_value;
+ * The subset has (N+2) elements with subset[0] is fixed to be 1, subset[N+1] is fixed to be M, and subset[1] through subset[N] vary in the process.
+ * There are (N+1) bubbles between pairs of adjacent elements.
+ * Initially, the bubbles are initialized with bubbles[0] = M-N, and bubbles[1]=...=bubbles[N]=0.
+ * Bubbles are gradually squeezed from left to right.
+ * The process ends when bubbles[0]=...=bubbles[N-1]=0, and bubbles[N]=M-N.
+ */
+static inline void generate_next_subset_jl(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value, unsigned int *bubbles) {
+    unsigned int index = subset_size - 1;
+    
+    // Update the new sizes for the bubbles
+    while (bubbles[index] == 0) {
+        index--;
+    }
+    
+    if (index < subset_size-1) {
+        bubbles[index]--;
+        bubbles[index+1]++;
+        bubbles[subset_size-1] += bubbles[subset_size];
+        bubbles[subset_size] = 0;
+    } else { // this means that (index == subset_size-1)
+        bubbles[index]--;
+        bubbles[subset_size]++;
+    }
+    
+    // write the subset under new bubbles
+    subset[0] = 1;
+    for (index = 1; index <= subset_size; index++) {
+        subset[index] = subset[index-1] + bubbles[index];
+    }
+}
+
 int main(int argc, char** argv) {
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
 
-    printf("\e[32mWorld\e[0m\n");
-
 
     /**
-     *  Get the maximum set length (in bits) so we can use this for printing out the values cleanly.
+     *  Calculate the maximum set length (in bits) so we can use this for printing out the values cleanly.
      */
     unsigned int *max_set = new unsigned int[subset_size];
     for (unsigned int i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
-//    printf("max set: ");
-//    print_subset(max_set, subset_size);
-//    printf("\n");
 
-    for (unsigned int i = 0; i < subset_size; i++) {
-        max_sums_length += max_set[i];
-    }
+    for (unsigned int i = 0; i < subset_size; i++) max_sums_length += max_set[i];
+
 //    sums_length /= 2;
     max_sums_length /= ELEMENT_SIZE;
     max_sums_length++;
@@ -346,6 +388,12 @@ int main(int argc, char** argv) {
     delete [] max_set;
 
     unsigned int *subset = new unsigned int[subset_size];
+#ifdef NEXT_SUBSET_JUN_LIU
+    unsigned int *bubbles = new unsigned int[subset_size + 1];
+    bubbles[0] = max_set_value - subset_size;
+    for (unsigned int i = 1; i <= subset_size; i++) bubbles[i] = 0;
+
+#endif
 
     long double max = n_choose_k(max_set_value, subset_size);
     printf("max: %Lf\n", max);
@@ -362,42 +410,36 @@ int main(int argc, char** argv) {
     for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
 
     bool success;
-    unsigned int current;
     unsigned long long pass = 0;
     unsigned long long fail = 0;
     unsigned long long iteration = 0;
+
+#ifndef NEXT_SUBSET_JUN_LIU
     while (subset[0] <= (max_set_value - subset_size + 1)) {
-        printf("%15lld ", iteration);
+#else
+    while (bubbles[0] > 0 || bubbles[subset_size] < (max_set_value - subset_size)) {
+#endif
+
 #ifdef VERBOSE
+        printf("%15lld ", iteration);
         print_subset(subset, subset_size);
         printf(" = ");
 #endif
 
         success = test_subset(subset, subset_size);
 #ifdef VERBOSE
-        if ( success ) {
-            printf(" = pass\n");
-        } else {
-            printf(" = fail\n");
-        }
+        if ( success )  printf(" = pass\n");
+        else            printf(" = fail\n");
 #endif
 
-        if (success) {
-            pass++;
-        } else {
-            fail++;
-        }
+        if (success)    pass++;
+        else            fail++;
 
-        current = subset_size - 1;
-        subset[current]++;
-        while (current > 0 && subset[current] > (max_set_value - (subset_size - (current + 1)))) {
-            subset[current - 1]++;
-            current --;
-        }
-        while (current < subset_size - 1) {
-            subset[current + 1] = subset[current] + 1;
-            current++;
-        }
+#ifndef NEXT_SUBSET_JUN_LIU
+        generate_next_subset_td(subset, subset_size, max_set_value);
+#else
+        generate_next_subset_jl(subset, subset_size, max_set_value, bubbles);
+#endif
 
         iteration++;
     }

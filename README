@@ -39,3 +39,7 @@ BUGS:
 NOTES:
     *   Added an ENABLE_COLOR compiler flag, which will print out the 
         subset sums we want to verify in green (and any missing ones in red).
+
+    *   Added Jun's algorithm for generating the next subset (looks like it 
+        needs to be debugged). This can be turned on with:
+            -DNEXT_SUBSET_JUN_LIU
