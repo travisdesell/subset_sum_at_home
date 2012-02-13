@@ -433,6 +433,11 @@ int main(int argc, char** argv) {
 */
 
     if (doing_slice) {
+        if (starting_subset >= max) {
+            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, max);
+            fprintf(stderr, "quitting.\n");
+            exit(0);
+        }
         generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
     } else {
         for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
