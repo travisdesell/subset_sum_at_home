@@ -34,7 +34,7 @@ void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array
 void print_subset(const unsigned int *subset, const unsigned int subset_size) {
     printf("[");
     for (unsigned int i = 0; i < subset_size; i++) {
-        printf("%4d", subset[i]);
+        printf("%4u", subset[i]);
     }
     printf("]");
 }
@@ -47,7 +47,7 @@ void print_bit_array_color(const unsigned int max_sums_length, const unsigned in
     unsigned int number, pos;
     unsigned int count = 0;
 
-//    printf(" - MSL: %d, MIN: %d, MAX: %d - ", msl, min, max);
+//    printf(" - MSL: %u, MIN: %u, MAX: %u - ", msl, min, max);
 
     if (bit_array_length < max_sums_length) {
         for (unsigned int i = 0; i < (max_sums_length - bit_array_length); i++) {
@@ -159,7 +159,7 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
 
 //    printf("\n");
 #ifdef VERBOSE 
-    printf("  match %4d to %4d           ", min, max);
+    printf("  match %4u to %4u           ", min, max);
 #endif
     /*
      * This will print out all the 1s that we're looking for.
@@ -224,10 +224,10 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     max_subset_sum = sums_length;
     M = subset[subset_size - 1];
 
-//    printf("subset requires %ld bits.\n", sums_length);
+//    printf("subset requires %lu bits.\n", sums_length);
     sums_length /= ELEMENT_SIZE;
     sums_length++;
-//    printf("which is %ld unsigned ints.\n", sums_length);
+//    printf("which is %ld unsigneu ints.\n", sums_length);
 
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
     unsigned int *sums = new unsigned int[sums_length];
@@ -244,7 +244,7 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
         current = subset[i];
 
         shift_left(new_sums, sums_length, sums, current);                    // new_sums = sums << current;
-//        printf("new_sums = sums << %2d    = ", current);
+//        printf("new_sums = sums << %2u    = ", current);
 //        print_bit_array(new_sums, sums_length);
 //        printf("\n");
 
@@ -288,10 +288,13 @@ long double fac(unsigned int n) {
     for (unsigned int i = 1; i <= n; i++) {
         result *= i;
     }
-//    printf("result: %Lf\n", result);
     return result;
 }
 
+/**
+ *  Calculate n choose k:
+ *  TODO: implement this using long long ints instead of long double (there are precision issues to take into a ccount).
+ */
 static inline long double n_choose_k(unsigned int n, unsigned int k) {
     long double expected_total = fac(n) / (fac(k) * fac(n - k));
     return expected_total;
@@ -302,14 +305,10 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
     unsigned int current_value = 1;
     long double nck;
 
-//    printf("\n%lld -- %d choose %d\n", i, max_set_value, subset_size);
-
     while (pos < subset_size) {
-//        printf("n: %d, choose k: %d\n", (max_set_value - current_value), subset_size - (pos + 1));
         nck = n_choose_k(max_set_value - current_value, subset_size - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
-//        printf("nck: %Lf, i: %lld, pos: %d, current_value: %d\n", nck, i, pos, current_value);
 
-        if (i < nck) {
+        if (i < nck || i == 1) { //it seems I also needed to check if i == 1 here, due to precision issues with long double (which could make the fac function in n_choose_k go into an infinite loop.
             subset[pos] = current_value;
             pos++;
         } else {
@@ -317,7 +316,6 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
         }
         current_value++;
     }
-
 }
 
 static inline void generate_next_subset_td(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
@@ -369,9 +367,30 @@ static inline void generate_next_subset_jl(unsigned int *subset, unsigned int su
 }
 
 int main(int argc, char** argv) {
+    if (argc != 3 && argc != 5) {
+        fprintf(stderr, "ERROR, wrong command line arguments.\n");
+        fprintf(stderr, "USAGE:\n");
+        fprintf(stderr, "\t./subset_sum <M> <N> [<i> <count>]\n\n");
+        fprintf(stderr, "argumetns:\n");
+        fprintf(stderr, "\t<M>      :   The maximum value allowed in the sets.\n");
+        fprintf(stderr, "\t<N>      :   The number of elements allowed in a set.\n");
+        fprintf(stderr, "\t<i>      :   (optional) start at the <i>th generated subset.\n");
+        fprintf(stderr, "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset).\n");
+        exit(0);
+    }
+
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
 
+    bool doing_slice = false;
+    unsigned int starting_subset;
+    unsigned int subsets_to_calculate;
+
+    if (argc == 5) {
+        doing_slice = true;
+        starting_subset = atoi(argv[3]);
+        subsets_to_calculate = atoi(argv[4]);
+    }
 
     /**
      *  Calculate the maximum set length (in bits) so we can use this for printing out the values cleanly.
@@ -392,22 +411,33 @@ int main(int argc, char** argv) {
     unsigned int *bubbles = new unsigned int[subset_size + 1];
     bubbles[0] = max_set_value - subset_size;
     for (unsigned int i = 1; i <= subset_size; i++) bubbles[i] = 0;
-
 #endif
 
     long double max = n_choose_k(max_set_value, subset_size);
     printf("max: %Lf\n", max);
 
-    /*
+//    this caused a problem:
+//    
+//    printf("%15u ", 296010);
+//    generate_ith_subset(296010, subset, subset_size, max_set_value);
+//    print_subset(subset, subset_size);
+//    printf("\n");
+
+/*
     for (unsigned long long i = 0; i < max; i++) {
-        printf("%15lld ", i);
-        generate_subset(i, subset, subset_size, max_set_value);
+        printf("%15llu ", i);
+        generate_ith_subset(i, subset, subset_size, max_set_value);
         print_subset(subset, subset_size);
         printf("\n");
     }
-    */
+*/
 
-    for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
+    if (doing_slice) {
+        generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
+    } else {
+        for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
+    }
+
 
     bool success;
     unsigned long long pass = 0;
@@ -421,7 +451,8 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef VERBOSE
-        printf("%15lld ", iteration);
+        if (doing_slice)    printf("%15llu ", (iteration + starting_subset));
+        else                printf("%15llu ", iteration);
         print_subset(subset, subset_size);
         printf(" = ");
 #endif
@@ -442,6 +473,7 @@ int main(int argc, char** argv) {
 #endif
 
         iteration++;
+        if (doing_slice && iteration >= subsets_to_calculate) break;
     }
 
     /**
@@ -449,8 +481,12 @@ int main(int argc, char** argv) {
      */
     long double expected_total = fac(max_set_value) / (fac(subset_size) * fac(max_set_value - subset_size));
 
-    printf("the expected total number of sets is: %Lf\n", expected_total);
-    printf("%lld total sets, %lld sets passed, %lld sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+    if (doing_slice) {
+        printf("expected to compute %u sets\n", subsets_to_calculate);
+    } else {
+        printf("the expected total number of sets is: %Lf\n", expected_total);
+    }
+    printf("%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
     delete [] subset;
 }

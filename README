@@ -11,7 +11,11 @@ To compile:
 To run:
     ./subset_sum <M> <N>
     Where <M> is the maximum set value, and <N> is the number of elements 
-    in the set.
+    in the set.  This will calculate it for all subsets.
+
+    ./subset_sum <M> <N> <i> <count>
+    This will start from the <i>th subset of the problem for <M> and <N>,
+    and compute the next <count> subsets.
 
 
 TODO:
@@ -26,15 +30,8 @@ TODO:
         sum of all set elements, we only need to check up to the sum 
         of all set elements divided by 2 (as the sums are symmetric).
 
-    *   Update the code that we can give it a slice of sets to calculate, 
-        as opposed to all sets for an M (max set value) and N (number of 
-        elements).  The command line arguments should be:
-            ./subset_sum <M> <N> <first subset> <number of subsets>,
-        where the first subset is the Nth generated subset, and the number 
-        of subsets is the number it should calculate.
-
 BUGS:
-    *   generate_subset can freeze (enters an infinite loop)
+    *   No known bugs at the moment.
 
 NOTES:
     *   Added an ENABLE_COLOR compiler flag, which will print out the 
