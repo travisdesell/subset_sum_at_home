@@ -2,15 +2,23 @@ To compile:
     Verbose version:
         g++ -Wall -DVERBOSE -O3 -o subset_sum subset_sum_main.cpp
 
-    Quiet (faster) version:
+    Verbose version (with ANSI color):
+        g++ -Wall -DVERBOSE -DENABLE_COLOR -O3 -o subset_sum subset_sum_main.cpp
+
+    Quiet (fast) version:
         g++ -Wall -O3 -o subset_sum subset_sum_main.cpp
 
 To run:
     ./subset_sum <M> <N>
-    Where <M> is the maximum set value, and <N> is the number of elements in the set.
+    Where <M> is the maximum set value, and <N> is the number of elements 
+    in the set.
 
 
 TODO:
+    *   Use a fast factorial function, speed up the n_choose_k function.
+        Also, speed up the repeated calls to n_choose_k in the generate 
+        subset function.
+
     *   Double check that the 'all_ones', 'or_single', 'or_equal' and 
         'shift_left' functions are working correctly.
 
@@ -26,4 +34,8 @@ TODO:
         of subsets is the number it should calculate.
 
 BUGS:
-    None so far.
+    *   generate_subset can freeze (enters an infinite loop)
+
+NOTES:
+    *   Added an ENABLE_COLOR compiler flag, which will print out the 
+        subset sums we want to verify in green (and any missing ones in red).

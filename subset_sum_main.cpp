@@ -3,7 +3,7 @@
 #include <cstring>
 #include <climits>
 
-const int ELEMENT_SIZE = sizeof(unsigned int) * 8;
+const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
 unsigned long int max_sums_length;
 
@@ -37,6 +37,58 @@ void print_subset(const unsigned int *subset, const unsigned int subset_size) {
         printf("%4d", subset[i]);
     }
     printf("]");
+}
+
+/**
+ * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
+ */
+void print_bit_array_color(const unsigned int max_sums_length, const unsigned int *bit_array, const unsigned int bit_array_length, unsigned int min, unsigned int max) {
+    unsigned int msl = max_sums_length * ELEMENT_SIZE;
+    unsigned int number, pos;
+    unsigned int count = 0;
+
+//    printf(" - MSL: %d, MIN: %d, MAX: %d - ", msl, min, max);
+
+    if (bit_array_length < max_sums_length) {
+        for (unsigned int i = 0; i < (max_sums_length - bit_array_length); i++) {
+            print_bits(0);
+            count += ELEMENT_SIZE;
+        }
+    }
+
+    bool red_on = false;
+
+    for (unsigned int i = 0; i < bit_array_length; i++) {
+        number = bit_array[i];
+        pos = 1 << (ELEMENT_SIZE) - 1;
+
+        while (pos > 0) {
+            if ((msl - min) == count) {
+                red_on = true;
+                printf ("\e[32m");
+            }
+
+            if (number & pos) printf("1");
+            else {
+                if (red_on) {
+                    printf("\e[31m0\e[32m");
+                } else {
+                    printf("0");
+                }
+            }
+
+            if ((msl - max) == count) {
+                printf ("\e[0m");
+                red_on = false;
+            }
+
+            pos >>= 1;
+            count++;
+        }
+
+//        min -= ELEMENT_SIZE;
+//        max -= ELEMENT_SIZE;
+    }
 }
 
 /**
@@ -106,10 +158,12 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
     unsigned int max_tmp = max % ELEMENT_SIZE;
 
 //    printf("\n");
-#ifdef VERBSOSE
+#ifdef VERBOSE 
     printf("  match %4d to %4d           ", min, max);
 #endif
     /*
+     * This will print out all the 1s that we're looking for.
+
     if (min_pos < max_pos) {
         if (max_tmp > 0) {
             print_bits(UINT_MAX >> (ELEMENT_SIZE - max_tmp));
@@ -131,18 +185,12 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
     } else {
         unsigned int against = UINT_MAX << (min_tmp - 1);
         if (against != (against & subset[length - min_pos - 1])) {
-#ifdef VERBSOSE
-            printf(" MIN ");
-#endif
             return false;
         }
 //        printf("min success\n");
 
         for (unsigned int i = (length - min_pos - 2); i > (length - max_pos); i--) {
             if (UINT_MAX != (UINT_MAX & subset[i])) {
-#ifdef VERBOSE
-                printf(" MID ");
-#endif
                 return false;
             }
         }
@@ -151,13 +199,9 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
         if (max_tmp > 0) {
             against = UINT_MAX >> (ELEMENT_SIZE - max_tmp);
             if (against != (against & subset[length - max_pos - 1])) {
-#ifdef VERBOSE
-                printf(" MAX ");
-#endif
                 return false;
             }
         }
-
 //        printf("max success\n");
 
     }
@@ -185,7 +229,7 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     sums_length++;
 //    printf("which is %ld unsigned ints.\n", sums_length);
 
-    //this is also symmetric.  Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
+    //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
     unsigned int *sums = new unsigned int[sums_length];
     unsigned int *new_sums = new unsigned int[sums_length];
     
@@ -216,10 +260,16 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     }
 
 #ifdef VERBOSE
+#ifdef ENABLE_COLOR
+    unsigned int min = max_subset_sum - M;
+    unsigned int max = M;
+    print_bit_array_color(max_sums_length, sums, sums_length, min, max);
+#else 
     if (sums_length < max_sums_length) {
         for (unsigned int i = 0; i < (max_sums_length - sums_length); i++) print_bits(0);
     }
     print_bit_array(sums, sums_length);
+#endif
 #endif
 
     bool success = all_ones(sums, sums_length, M, max_subset_sum - M);
@@ -242,10 +292,40 @@ long double fac(unsigned int n) {
     return result;
 }
 
+static inline long double n_choose_k(unsigned int n, unsigned int k) {
+    long double expected_total = fac(n) / (fac(k) * fac(n - k));
+    return expected_total;
+}
+
+static inline void generate_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
+    unsigned int pos = 0;
+    unsigned int current_value = 1;
+    long double nck;
+
+//    printf("\n%lld -- %d choose %d\n", i, max_set_value, subset_size);
+
+    while (pos < subset_size) {
+//        printf("n: %d, choose k: %d\n", (max_set_value - current_value), subset_size - (pos + 1));
+        nck = n_choose_k(max_set_value - current_value, subset_size - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
+//        printf("nck: %Lf, i: %lld, pos: %d, current_value: %d\n", nck, i, pos, current_value);
+
+        if (i < nck) {
+            subset[pos] = current_value;
+            pos++;
+        } else {
+            i -= nck;
+        }
+        current_value++;
+    }
+
+}
 
 int main(int argc, char** argv) {
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
+
+    printf("\e[32mWorld\e[0m\n");
+
 
     /**
      *  Get the maximum set length (in bits) so we can use this for printing out the values cleanly.
@@ -266,13 +346,28 @@ int main(int argc, char** argv) {
     delete [] max_set;
 
     unsigned int *subset = new unsigned int[subset_size];
+
+    long double max = n_choose_k(max_set_value, subset_size);
+    printf("max: %Lf\n", max);
+
+    /*
+    for (unsigned long long i = 0; i < max; i++) {
+        printf("%15lld ", i);
+        generate_subset(i, subset, subset_size, max_set_value);
+        print_subset(subset, subset_size);
+        printf("\n");
+    }
+    */
+
     for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
 
     bool success;
     unsigned int current;
     unsigned long long pass = 0;
     unsigned long long fail = 0;
+    unsigned long long iteration = 0;
     while (subset[0] <= (max_set_value - subset_size + 1)) {
+        printf("%15lld ", iteration);
 #ifdef VERBOSE
         print_subset(subset, subset_size);
         printf(" = ");
@@ -304,6 +399,7 @@ int main(int argc, char** argv) {
             current++;
         }
 
+        iteration++;
     }
 
     /**
