@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <time.h>
 
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
@@ -379,6 +380,14 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
+    //time function insertion
+
+	time_t rawtime;
+
+  	time ( &rawtime );
+ 	printf ( "Start Time: %s", ctime (&rawtime) );
+
+
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
 
@@ -494,4 +503,8 @@ int main(int argc, char** argv) {
     printf("%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
     delete [] subset;
+
+    
+    time ( &rawtime );
+    printf ( "End Time: %s", ctime (&rawtime) );
 }
