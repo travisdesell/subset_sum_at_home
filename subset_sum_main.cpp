@@ -58,6 +58,8 @@ void print_bit_array_color(const unsigned int max_sums_length, const unsigned in
 
     bool red_on = false;
 
+//    printf(" msl - min [%u], msl - max [%u] ", (msl - min), (msl - max));
+
     for (unsigned int i = 0; i < bit_array_length; i++) {
         number = bit_array[i];
         pos = 1 << (ELEMENT_SIZE) - 1;
@@ -85,9 +87,6 @@ void print_bit_array_color(const unsigned int max_sums_length, const unsigned in
             pos >>= 1;
             count++;
         }
-
-//        min -= ELEMENT_SIZE;
-//        max -= ELEMENT_SIZE;
     }
 }
 
@@ -300,6 +299,35 @@ static inline long double n_choose_k(unsigned int n, unsigned int k) {
     return expected_total;
 }
 
+static inline unsigned long long n_choose_k_new(unsigned int n, unsigned int k) {
+    unsigned int max, min;
+    if (k < n - k) {
+        max = n - k;
+        min = k;
+    } else {
+        max = k;
+        min = n - k;
+    }
+
+    unsigned int *divisors = new unsigned int[min - 1];
+    for (unsigned int i = 2; i <= min; i++) divisors[i] = i;
+
+    unsigned long long numerator = n;
+    for (unsigned int j = n - 1; j > max; j++) {
+        for (unsigned int k = 0; k < min - 1; k++) {
+            if (numerator % divisors[k] == 0) {
+                numerator /= divisors[k];
+                divisors[k] = 1;
+            }
+        }
+        n *= j;
+    }
+
+    delete [] divisors;
+
+    return n;
+}
+
 static inline void generate_ith_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
     unsigned int pos = 0;
     unsigned int current_value = 1;
@@ -383,8 +411,8 @@ int main(int argc, char** argv) {
     unsigned int subset_size = atoi(argv[2]);
 
     bool doing_slice = false;
-    unsigned int starting_subset;
-    unsigned int subsets_to_calculate;
+    unsigned int starting_subset = 0;
+    unsigned int subsets_to_calculate = 0;
 
     if (argc == 5) {
         doing_slice = true;
@@ -415,6 +443,9 @@ int main(int argc, char** argv) {
 
     long double max = n_choose_k(max_set_value, subset_size);
     printf("max: %Lf\n", max);
+
+    unsigned long long u_max = n_choose_k(max_set_value, subset_size);
+    printf("u_max: %llu\n", u_max);
 
 //    this caused a problem:
 //    

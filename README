@@ -30,6 +30,11 @@ TODO:
         sum of all set elements, we only need to check up to the sum 
         of all set elements divided by 2 (as the sums are symmetric).
 
+    *   Update the code so that we're only checking the sums that have
+        the largest number in them (this will mean we have to check
+        about half as many sets) -- the other sets were redudantly
+        checked in smaller M choose Ns.
+
 BUGS:
     *   No known bugs at the moment.
 
