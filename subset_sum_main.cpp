@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <time.h>
 
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
@@ -406,9 +407,25 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset).\n");
         exit(0);
     }
-
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
+	
+
+    printf("max_set_value: %u, subset_size: %u\n", max_set_value, subset_size);
+    //if statement for M<N 
+    if(max_set_value < subset_size){
+	fprintf(stderr, "Error M > N, Not valid ");
+	exit(0);
+    }
+
+    //timestamp flag
+    #ifdef TIMESTAMP
+        time_t rawtime;
+        time ( &rawtime );
+        printf ( "Start Time: %s", ctime (&rawtime) );
+    #endif
+
+
 
     bool doing_slice = false;
     unsigned int starting_subset = 0;
@@ -525,4 +542,9 @@ int main(int argc, char** argv) {
     printf("%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
     delete [] subset;
+
+    #ifdef TIMESTAMP
+        time ( &rawtime );
+        printf ( "End Time: %s", ctime (&rawtime) );
+    #endif
 }
