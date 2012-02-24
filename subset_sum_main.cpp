@@ -410,22 +410,19 @@ int main(int argc, char** argv) {
     unsigned int max_set_value = atoi(argv[1]);
     unsigned int subset_size = atoi(argv[2]);
 	
-
     printf("max_set_value: %u, subset_size: %u\n", max_set_value, subset_size);
     //if statement for M<N 
-    if(max_set_value < subset_size){
-	fprintf(stderr, "Error M > N, Not valid ");
-	exit(0);
+    if (max_set_value < subset_size) {
+        fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
+        exit(0);
     }
 
     //timestamp flag
-    #ifdef TIMESTAMP
-        time_t rawtime;
-        time ( &rawtime );
-        printf ( "Start Time: %s", ctime (&rawtime) );
-    #endif
-
-
+#ifdef TIMESTAMP
+    time_t rawtime;
+    time ( &rawtime );
+    printf ( "Start Time: %s", ctime (&rawtime) );
+#endif
 
     bool doing_slice = false;
     unsigned int starting_subset = 0;
@@ -543,8 +540,8 @@ int main(int argc, char** argv) {
 
     delete [] subset;
 
-    #ifdef TIMESTAMP
-        time ( &rawtime );
-        printf ( "End Time: %s", ctime (&rawtime) );
-    #endif
+#ifdef TIMESTAMP
+    time ( &rawtime );
+    printf ( "End Time: %s", ctime (&rawtime) );
+#endif
 }
