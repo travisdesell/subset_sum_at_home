@@ -8,6 +8,12 @@ To compile:
     Quiet (fast) version:
         g++ -Wall -O3 -o subset_sum subset_sum_main.cpp
 
+    Jun's Algorithm Enable Flag:
+    g++ -Wall -DNEXT_SUBSET_JUN_LIU -O3 -o subset_sum subset_sum_main.cpp
+
+    Ross's Timestamp Enable Flag:
+	g++ -Wall -DTIMESTAMP -O3 -o subset_sum subset_sum_main.cpp
+
 To run:
     ./subset_sum <M> <N>
     Where <M> is the maximum set value, and <N> is the number of elements 
@@ -45,3 +51,9 @@ NOTES:
     *   Added Jun's algorithm for generating the next subset (looks like it 
         needs to be debugged). This can be turned on with:
             -DNEXT_SUBSET_JUN_LIU
+
+    *   Added Time-stamping flag to beginning and end of program enable with:
+            -DTIMESTAMP
+
+    *   Added check so that if N is greater than M it will produce an error
+        message instead of hanging the program unnecessarily.
