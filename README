@@ -2,17 +2,22 @@ To compile:
     Verbose version:
         g++ -Wall -DVERBOSE -O3 -o subset_sum subset_sum_main.cpp
 
-    Verbose version (with ANSI color):
-        g++ -Wall -DVERBOSE -DENABLE_COLOR -O3 -o subset_sum subset_sum_main.cpp
-
     Quiet (fast) version:
         g++ -Wall -O3 -o subset_sum subset_sum_main.cpp
 
-    Jun's Algorithm Enable Flag:
-    g++ -Wall -DNEXT_SUBSET_JUN_LIU -O3 -o subset_sum subset_sum_main.cpp
+    For BOINC:
+        g++ -DVERBOSE -DFALSE_ONLY -D_BOINC_ -O3 -msse2 -funroll-loops 
+            -ftree-vectorize -Wall subset_sum_main.cpp -o subset_sum
 
-    Ross's Timestamp Enable Flag:
-	g++ -Wall -DTIMESTAMP -O3 -o subset_sum subset_sum_main.cpp
+Additional flags:
+    -DTIMESTAMP             -- enable printing the starting, ending and
+                               running time of the program
+    -DFALSE_ONLY            -- only print out the failed sets
+    -DENABLE_COLOR          -- enable ANSI colors. Sums that are required
+                               and found (1s) will be printed green, and
+                               sums that are required and not found (0s)
+                               will be red.
+    -DNEXT_SUBSET_JUN_LIU   --  Use Jun's generate next subset algorithm
 
 To run:
     ./subset_sum <M> <N>
