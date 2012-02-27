@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <cmath>
 #include <time.h>
 
 #include <string>
@@ -36,6 +37,10 @@ unsigned int *new_sums;
 string checkpoint_file = "sss_checkpoint.txt";
 string output_filename = "failed_sets.txt";
 FILE *output_target;
+
+#ifdef HTML_OUTPUT
+double max_digits;
+#endif;
 
 /**
  *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
@@ -309,8 +314,24 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
         }
 #endif
 
+#ifdef HTML_OUTPUT
+        double whitespaces;
+        if (iteration == 0) whitespaces = (max_digits - 1);
+        else {
+            if (doing_slice)    whitespaces = (max_digits - floor(log10(iteration + starting_subset))) - 1;
+            else                whitespaces = (max_digits - floor(log10(iteration))) - 1;
+        }
+
+        for (int i = 0; i < whitespaces; i++) fprintf(output_target, "&nbsp;");
+#endif
+
+#ifndef HTML_OUTPUT
         if (doing_slice)    fprintf(output_target, "%15llu ", (iteration + starting_subset));
         else                fprintf(output_target, "%15llu ", iteration);
+#else
+        if (doing_slice)    fprintf(output_target, "%llu ", (iteration + starting_subset));
+        else                fprintf(output_target, "%llu ", iteration);
+#endif
         print_subset(subset, subset_size);
         fprintf(output_target, " = ");
 
@@ -622,7 +643,11 @@ int main(int argc, char** argv) {
 //    print_subset(subset, subset_size);
 //    fprintf(output_target, "\n");
 
-    unsigned long long expected_total = n_choose_k(max_set_value - 1, subset_size -1);
+    unsigned long long expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
+
+#ifdef HTML_OUTPUT
+    max_digits = ceil(log10(expected_total));
+#endif
 
 //    for (unsigned long long i = 0; i < expected_total; i++) {
 //        fprintf(output_target, "%15llu ", i);
