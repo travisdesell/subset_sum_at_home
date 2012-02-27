@@ -23,6 +23,8 @@ Additional flags:
     -DSHOW_SUM_CALCULATION  -- Turns on printing out how the subset sums
                                are calculated. Useful for debugging and
                                this might be nice for analysis.
+    -DHTML_OUTPUT           -- Output will be formatted for HTML, so it
+                               can be put in a webpage.
 
 To run:
     ./subset_sum <M> <N>
