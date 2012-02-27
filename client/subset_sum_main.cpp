@@ -271,30 +271,30 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
 #endif
 
 #ifdef SHOW_SUM_CALCULATION
-    for (unsigned int i = 0; i < max_sums_length; i++) {
-        sums[i] = 0;
-        new_sums[i] = 0;
-    }
+        for (unsigned int i = 0; i < max_sums_length; i++) {
+            sums[i] = 0;
+            new_sums[i] = 0;
+        }
 
-    fprintf(output_target, "\n");
-    for (unsigned int i = 0; i < subset_size; i++) {
-        current = subset[i];
-
-        shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-        fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
-        print_bit_array(new_sums, max_sums_length);
         fprintf(output_target, "\n");
+        for (unsigned int i = 0; i < subset_size; i++) {
+            current = subset[i];
 
-        or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
-        fprintf(output_target, "sums |= new_sums                                               = ");
-        print_bit_array(sums, max_sums_length);
-        fprintf(output_target, "\n");
+            shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
+            fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
+            print_bit_array(new_sums, max_sums_length);
+            fprintf(output_target, "\n");
 
-        or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
-        fprintf(output_target, "sums != 1 << current - 1                                       = ");
-        print_bit_array(sums, max_sums_length);
-        fprintf(output_target, "\n");
-    }
+            or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
+            fprintf(output_target, "sums |= new_sums                                               = ");
+            print_bit_array(sums, max_sums_length);
+            fprintf(output_target, "\n");
+
+            or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
+            fprintf(output_target, "sums != 1 << current - 1                                       = ");
+            print_bit_array(sums, max_sums_length);
+            fprintf(output_target, "\n");
+        }
 #endif
 
         if (doing_slice)    fprintf(output_target, "%15llu ", (iteration + starting_subset));

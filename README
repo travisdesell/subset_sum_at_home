@@ -20,6 +20,9 @@ Additional flags:
                                will be red.
     -DNEXT_SUBSET_JUN_LIU   -- Use Jun's generate next subset algorithm
     -DENABLE_CHECKPOINTING  -- Turns on checkpointing.
+    -DSHOW_SUM_CALCULATION  -- Turns on printing out how the subset sums
+                               are calculated. Useful for debugging and
+                               this might be nice for analysis.
 
 To run:
     ./subset_sum <M> <N>
@@ -53,15 +56,6 @@ BUGS:
     *   No known bugs at the moment.
 
 NOTES:
-    *   Added an ENABLE_COLOR compiler flag, which will print out the 
-        subset sums we want to verify in green (and any missing ones in red).
-
     *   Added Jun's algorithm for generating the next subset (looks like it 
         needs to be debugged). This can be turned on with:
             -DNEXT_SUBSET_JUN_LIU
-
-    *   Added Time-stamping flag to beginning and end of program enable with:
-            -DTIMESTAMP
-
-    *   Added check so that if N is greater than M it will produce an error
-        message instead of hanging the program unnecessarily.
