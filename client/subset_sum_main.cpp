@@ -368,8 +368,8 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
     unsigned int current_value = 1;
     long double nck;
 
-    while (pos < subset_size) {
-        nck = n_choose_k(max_set_value - current_value, subset_size - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
+    while (pos < subset_size - 1) {
+        nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
 
         if (i < nck || i == 1) { //it seems I also needed to check if i == 1 here, due to precision issues with long double (which could make the fac function in n_choose_k go into an infinite loop.
             subset[pos] = current_value;
@@ -379,6 +379,8 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
         }
         current_value++;
     }
+
+    subset[subset_size - 1] = max_set_value;
 }
 
 static inline void generate_next_subset_td(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
@@ -513,17 +515,29 @@ int main(int argc, char** argv) {
     unsigned long max_set_value = atol(argv[1]);
     unsigned long subset_size = atol(argv[2]);
 
-    fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
-    if (max_set_value < subset_size) {
-        fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
-        exit(0);
+#ifdef _BOINC_
+    if (!started_from_checkpoint) {
+#endif
+        fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
+        if (max_set_value < subset_size) {
+            fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
+            exit(0);
+        }
+#ifdef _BOINC_
     }
+#endif
 
     //timestamp flag
 #ifdef TIMESTAMP
     time_t start_time;
     time( &start_time );
-    fprintf(output_target, "start time: %s", ctime(&start_time) );
+#ifdef _BOINC_
+    if (!started_from_checkpoint) {
+#endif
+        fprintf(output_target, "start time: %s", ctime(&start_time) );
+#ifdef _BOINC_
+    }
+#endif
 #endif
 
     bool doing_slice = false;
@@ -556,12 +570,6 @@ int main(int argc, char** argv) {
     for (unsigned int i = 1; i <= subset_size; i++) bubbles[i] = 0;
 #endif
 
-    long double max = n_choose_k(max_set_value - 1, subset_size - 1);
-    fprintf(output_target, "max: %Lf\n", max);
-
-    unsigned long long u_max = n_choose_k(max_set_value - 1, subset_size - 1);
-    fprintf(output_target, "u_max: %llu\n", u_max);
-
 //    this caused a problem:
 //    
 //    fprintf(output_target, "%15u ", 296010);
@@ -578,9 +586,12 @@ int main(int argc, char** argv) {
     }
 */
 
+    long double expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
+    unsigned long long expected_total_u = n_choose_k(max_set_value - 1, subset_size - 1);
+
     if (doing_slice) {
-        if (starting_subset >= max) {
-            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, max);
+        if (starting_subset >= expected_total) {
+            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
             exit(0);
         }
@@ -599,7 +610,13 @@ int main(int argc, char** argv) {
     unsigned long long iteration = 0;
 
 #ifdef _BOINC_
-    fprintf(output_target, "<tested_subsets>\n");
+#ifdef _BOINC_
+    if (!started_from_checkpoint) {
+#endif
+        fprintf(output_target, "<tested_subsets>\n");
+#ifdef _BOINC_
+    }
+#endif
 #endif
 
 #ifndef NEXT_SUBSET_JUN_LIU
@@ -648,12 +665,10 @@ int main(int argc, char** argv) {
     /**
      * pass + fail should = M! / (N! * (M - N)!)
      */
-    long double expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
-
     if (doing_slice) {
         fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
     } else {
-        fprintf(output_target, "the expected total number of sets is: %Lf\n", expected_total);
+        fprintf(output_target, "the expected total number of sets is: %Lf, (unsigned long long calculation: %llu)\n", expected_total, expected_total_u);
     }
     fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
