@@ -24,6 +24,10 @@
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
 unsigned long int max_sums_length;
+unsigned int *sums;
+unsigned int *new_sums;
+
+FILE *output_target;
 
 /**
  *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
@@ -31,8 +35,8 @@ unsigned long int max_sums_length;
 void print_bits(const unsigned int number) {
     unsigned int pos = 1 << (ELEMENT_SIZE) - 1;
     while (pos > 0) {
-        if (number & pos) fprintf(stderr, "1");
-        else fprintf(stderr, "0");
+        if (number & pos) fprintf(output_target, "1");
+        else fprintf(output_target, "0");
         pos >>= 1;
     }
 }
@@ -50,55 +54,48 @@ void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array
  *  Print out all the elements in a subset
  */
 void print_subset(const unsigned int *subset, const unsigned int subset_size) {
-    fprintf(stderr, "[");
+    fprintf(output_target, "[");
     for (unsigned int i = 0; i < subset_size; i++) {
-        fprintf(stderr, "%4u", subset[i]);
+        fprintf(output_target, "%4u", subset[i]);
     }
-    fprintf(stderr, "]");
+    fprintf(output_target, "]");
 }
 
 /**
  * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
  */
-void print_bit_array_color(const unsigned int max_sums_length, const unsigned int *bit_array, const unsigned int bit_array_length, unsigned int min, unsigned int max) {
+void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_sums_length, unsigned int min, unsigned int max) {
     unsigned int msl = max_sums_length * ELEMENT_SIZE;
     unsigned int number, pos;
     unsigned int count = 0;
 
-//    fprintf(stderr, " - MSL: %u, MIN: %u, MAX: %u - ", msl, min, max);
-
-    if (bit_array_length < max_sums_length) {
-        for (unsigned int i = 0; i < (max_sums_length - bit_array_length); i++) {
-            print_bits(0);
-            count += ELEMENT_SIZE;
-        }
-    }
+//    fprintf(output_target, " - MSL: %u, MIN: %u, MAX: %u - ", msl, min, max);
 
     bool red_on = false;
 
-//    fprintf(stderr, " msl - min [%u], msl - max [%u] ", (msl - min), (msl - max));
+//    fprintf(output_target, " msl - min [%u], msl - max [%u] ", (msl - min), (msl - max));
 
-    for (unsigned int i = 0; i < bit_array_length; i++) {
+    for (unsigned int i = 0; i < max_sums_length; i++) {
         number = bit_array[i];
         pos = 1 << (ELEMENT_SIZE) - 1;
 
         while (pos > 0) {
             if ((msl - min) == count) {
                 red_on = true;
-                fprintf(stderr, "\e[32m");
+                fprintf(output_target, "\e[32m");
             }
 
-            if (number & pos) fprintf(stderr, "1");
+            if (number & pos) fprintf(output_target, "1");
             else {
                 if (red_on) {
-                    fprintf(stderr, "\e[31m0\e[32m");
+                    fprintf(output_target, "\e[31m0\e[32m");
                 } else {
-                    fprintf(stderr, "0");
+                    fprintf(output_target, "0");
                 }
             }
 
             if ((msl - max) == count) {
-                fprintf(stderr, "\e[0m");
+                fprintf(output_target, "\e[0m");
                 red_on = false;
             }
 
@@ -200,14 +197,14 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
         if (against != (against & subset[length - min_pos - 1])) {
             return false;
         }
-//        fprintf(stderr, "min success\n");
+//        fprintf(output_target, "min success\n");
 
         for (unsigned int i = (length - min_pos - 2); i > (length - max_pos); i--) {
             if (UINT_MAX != (UINT_MAX & subset[i])) {
                 return false;
             }
         }
-//        fprintf(stderr, "mid success\n");
+//        fprintf(output_target, "mid success\n");
 
         if (max_tmp > 0) {
             against = UINT_MAX >> (ELEMENT_SIZE - max_tmp);
@@ -215,7 +212,7 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
                 return false;
             }
         }
-//        fprintf(stderr, "max success\n");
+//        fprintf(output_target, "max success\n");
 
     }
 
@@ -226,87 +223,93 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
 static inline bool test_subset(const unsigned int *subset, const unsigned int subset_size, const unsigned long long iteration, const unsigned int starting_subset, const bool doing_slice) {
-    unsigned int M = 0; // M is the max value in the subset
-    unsigned int max_subset_sum = 0; //the sum of all values in the subset
-
-    unsigned long int sums_length = 0;
-    for (unsigned int i = 0; i < subset_size; i++) {
-        sums_length += subset[i];
-    }
-//    sums_length /= 2;
-    max_subset_sum = sums_length;
-    M = subset[subset_size - 1];
-
-//    fprintf(stderr, "subset requires %lu bits.\n", sums_length);
-    sums_length /= ELEMENT_SIZE;
-    sums_length++;
-//    fprintf(stderr, "which is %ld unsigneu ints.\n", sums_length);
-
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
-    unsigned int *sums = new unsigned int[sums_length];
-    unsigned int *new_sums = new unsigned int[sums_length];
+    unsigned int M = subset[subset_size - 1];
+    unsigned int max_subset_sum = 0;
+
+    for (unsigned int i = 0; i < subset_size; i++) max_subset_sum += subset[i];
     
-    for (unsigned int i = 0; i < sums_length; i++) {
+    for (unsigned int i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
         new_sums[i] = 0;
     }
 
-//    fprintf(stderr, "\n");
+//    fprintf(output_target, "\n");
     unsigned int current;
     for (unsigned int i = 0; i < subset_size; i++) {
         current = subset[i];
 
-        shift_left(new_sums, sums_length, sums, current);                    // new_sums = sums << current;
-//        fprintf(stderr, "new_sums = sums << %2u    = ", current);
+        shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
+//        fprintf(output_target, "new_sums = sums << %2u    = ", current);
 //        print_bit_array(new_sums, sums_length);
-//        fprintf(stderr, "\n");
+//        fprintf(output_target, "\n");
 
-        or_equal(sums, sums_length, new_sums);                               //sums |= new_sums;
-//        fprintf(stderr, "sums |= new_sums         = ");
+        or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
+//        fprintf(output_target, "sums |= new_sums         = ");
 //        print_bit_array(sums, sums_length);
-//        fprintf(stderr, "\n");
+//        fprintf(output_target, "\n");
 
-        or_single(sums, sums_length, current - 1);                           //sums |= 1 << (current - 1);
-//        fprintf(stderr, "sums != 1 << current - 1 = ");
+        or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
+//        fprintf(output_target, "sums != 1 << current - 1 = ");
 //        print_bit_array(sums, sums_length);
-//        fprintf(stderr, "\n");
+//        fprintf(output_target, "\n");
     }
 
-    bool success = all_ones(sums, sums_length, M, max_subset_sum - M);
+    bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
 
 #ifdef VERBOSE
 #ifdef FALSE_ONLY
     if (!success) {
 #endif
-        if (doing_slice)    fprintf(stderr, "%15llu ", (iteration + starting_subset));
-        else                fprintf(stderr, "%15llu ", iteration);
+
+#ifdef SHOW_SUM_CALCULATION
+    for (unsigned int i = 0; i < max_sums_length; i++) {
+        sums[i] = 0;
+        new_sums[i] = 0;
+    }
+
+    fprintf(output_target, "\n");
+    for (unsigned int i = 0; i < subset_size; i++) {
+        current = subset[i];
+
+        shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
+        fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
+        print_bit_array(new_sums, max_sums_length);
+        fprintf(output_target, "\n");
+
+        or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
+        fprintf(output_target, "sums |= new_sums                                               = ");
+        print_bit_array(sums, max_sums_length);
+        fprintf(output_target, "\n");
+
+        or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
+        fprintf(output_target, "sums != 1 << current - 1                                       = ");
+        print_bit_array(sums, max_sums_length);
+        fprintf(output_target, "\n");
+    }
+#endif
+
+        if (doing_slice)    fprintf(output_target, "%15llu ", (iteration + starting_subset));
+        else                fprintf(output_target, "%15llu ", iteration);
         print_subset(subset, subset_size);
-        fprintf(stderr, " = ");
+        fprintf(output_target, " = ");
 
         unsigned int min = max_subset_sum - M;
         unsigned int max = M;
 #ifdef ENABLE_COLOR
-        print_bit_array_color(max_sums_length, sums, sums_length, min, max);
+        print_bit_array_color(sums, max_sums_length, min, max);
 #else 
-        if (sums_length < max_sums_length) {
-            for (unsigned int i = 0; i < (max_sums_length - sums_length); i++) print_bits(0);
-        }
-        print_bit_array(sums, sums_length);
+        print_bit_array(sums, max_sums_length);
 #endif
 
-        fprintf(stderr, "  match %4u to %4u ", min, max);
-        if (success)    fprintf(stderr, " = pass\n");
-        else            fprintf(stderr, " = fail\n");
+        fprintf(output_target, "  match %4u to %4u ", min, max);
+        if (success)    fprintf(output_target, " = pass\n");
+        else            fprintf(output_target, " = fail\n");
 
 #ifdef FALSE_ONLY
     }
 #endif
 #endif
-
-    //Could speed things up here by only allocating sums and new_sums once and
-    //just resetting them at the beginning of the function call
-    delete [] sums;
-    delete [] new_sums;
 
     return success;
 }
@@ -379,16 +382,34 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
 }
 
 static inline void generate_next_subset_td(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
-    unsigned int current = subset_size - 1;
+    unsigned int current = subset_size - 2;
     subset[current]++;
+
+//    fprintf(output_target, "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
+
+//    print_subset(subset, subset_size);
+//    fprintf(output_target, "\n");
+
     while (current > 0 && subset[current] > (max_set_value - (subset_size - (current + 1)))) {
         subset[current - 1]++;
-        current --;
+        current--;
+
+//        print_subset(subset, subset_size);
+//        fprintf(output_target, "\n");
     }
-    while (current < subset_size - 1) {
+
+    while (current < subset_size - 2) {
         subset[current + 1] = subset[current] + 1;
         current++;
+
+//        print_subset(subset, subset_size);
+//        fprintf(output_target, "\n");
     }
+
+    subset[subset_size - 1] = max_set_value;
+
+//    print_subset(subset, subset_size);
+//    fprintf(output_target, "\n");
 }
 
 /**
@@ -426,6 +447,35 @@ static inline void generate_next_subset_jl(unsigned int *subset, unsigned int su
     }
 }
 
+/*
+void write_checkpoint(string filename, const unsigned long long iteration) {
+#ifdef _BOINC_
+    string output_path;
+    int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
+    
+    if (retval) {
+        fprintf(stderr, "APP: error writing sites checkpoint (resolving checkpoint file name)\n");
+        return;
+    }   
+
+    ofstream checkpoint_file(output_path.c_str());
+#else
+    ofstream checkpoint_file(filename.c_str());
+#endif
+    if (!checkpoint_file.is_open()) {
+        fprintf(stderr, "APP: error writing checkpoint (opening checkpoint file)\n");
+        return;
+    }   
+
+    checkpoint_file << "seed: " <<  seed << endl;
+    checkpoint_file << "iteration: " << iteration << endl;
+    checkpoint_file << "independent_walk: " << independent_walk << endl;
+    write_sites_to_file(checkpoint_file, ".\n", sequences);
+
+    checkpoint_file.close();
+}
+*/
+
 int main(int argc, char** argv) {
 #ifdef _BOINC_
     int retval = 0;
@@ -442,6 +492,12 @@ int main(int argc, char** argv) {
     if (retval) exit(retval);
 #endif
 
+#ifdef _BOINC_
+    output_target = output_file;
+#else 
+    output_target = stdout;
+#endif
+
     if (argc != 3 && argc != 5) {
         fprintf(stderr, "ERROR, wrong command line arguments.\n");
         fprintf(stderr, "USAGE:\n");
@@ -453,10 +509,11 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset).\n");
         exit(0);
     }
-    unsigned int max_set_value = atoi(argv[1]);
-    unsigned int subset_size = atoi(argv[2]);
-	
-    fprintf(stderr, "max_set_value: %u, subset_size: %u\n", max_set_value, subset_size);
+
+    unsigned long max_set_value = atol(argv[1]);
+    unsigned long subset_size = atol(argv[2]);
+
+    fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
     if (max_set_value < subset_size) {
         fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
         exit(0);
@@ -466,7 +523,7 @@ int main(int argc, char** argv) {
 #ifdef TIMESTAMP
     time_t start_time;
     time( &start_time );
-    fprintf(stderr, "start time: %s", ctime(&start_time) );
+    fprintf(output_target, "start time: %s", ctime(&start_time) );
 #endif
 
     bool doing_slice = false;
@@ -484,7 +541,6 @@ int main(int argc, char** argv) {
      */
     unsigned int *max_set = new unsigned int[subset_size];
     for (unsigned int i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
-
     for (unsigned int i = 0; i < subset_size; i++) max_sums_length += max_set[i];
 
 //    sums_length /= 2;
@@ -500,25 +556,25 @@ int main(int argc, char** argv) {
     for (unsigned int i = 1; i <= subset_size; i++) bubbles[i] = 0;
 #endif
 
-    long double max = n_choose_k(max_set_value, subset_size);
-    fprintf(stderr, "max: %Lf\n", max);
+    long double max = n_choose_k(max_set_value - 1, subset_size - 1);
+    fprintf(output_target, "max: %Lf\n", max);
 
-    unsigned long long u_max = n_choose_k(max_set_value, subset_size);
-    fprintf(stderr, "u_max: %llu\n", u_max);
+    unsigned long long u_max = n_choose_k(max_set_value - 1, subset_size - 1);
+    fprintf(output_target, "u_max: %llu\n", u_max);
 
 //    this caused a problem:
 //    
-//    fprintf(stderr, "%15u ", 296010);
+//    fprintf(output_target, "%15u ", 296010);
 //    generate_ith_subset(296010, subset, subset_size, max_set_value);
 //    print_subset(subset, subset_size);
-//    fprintf(stderr, "\n");
+//    fprintf(output_target, "\n");
 
 /*
     for (unsigned long long i = 0; i < max; i++) {
-        fprintf(stderr, "%15llu ", i);
+        fprintf(output_target, "%15llu ", i);
         generate_ith_subset(i, subset, subset_size, max_set_value);
         print_subset(subset, subset_size);
-        fprintf(stderr, "\n");
+        fprintf(output_target, "\n");
     }
 */
 
@@ -530,9 +586,12 @@ int main(int argc, char** argv) {
         }
         generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
     } else {
-        for (unsigned int i = 0; i < subset_size; i++) subset[i] = i + 1;
+        for (unsigned int i = 0; i < subset_size - 1; i++) subset[i] = i + 1;
+        subset[subset_size - 1] = max_set_value;
     }
 
+    sums = new unsigned int[max_sums_length];
+    new_sums = new unsigned int[max_sums_length];
 
     bool success;
     unsigned long long pass = 0;
@@ -540,7 +599,7 @@ int main(int argc, char** argv) {
     unsigned long long iteration = 0;
 
 #ifdef _BOINC_
-    fprintf(stderr, "<tested_subsets>\n");
+    fprintf(output_target, "<tested_subsets>\n");
 #endif
 
 #ifndef NEXT_SUBSET_JUN_LIU
@@ -582,33 +641,35 @@ int main(int argc, char** argv) {
     }
 
 #ifdef _BOINC_
-    fprintf(stderr, "</tested_subsets>\n");
-    fprintf(stderr, "<extra_info>\n");
+    fprintf(output_target, "</tested_subsets>\n");
+    fprintf(output_target, "<extra_info>\n");
 #endif
 
     /**
      * pass + fail should = M! / (N! * (M - N)!)
      */
-    long double expected_total = fac(max_set_value) / (fac(subset_size) * fac(max_set_value - subset_size));
+    long double expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
 
     if (doing_slice) {
-        fprintf(stderr, "expected to compute %u sets\n", subsets_to_calculate);
+        fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
     } else {
-        fprintf(stderr, "the expected total number of sets is: %Lf\n", expected_total);
+        fprintf(output_target, "the expected total number of sets is: %Lf\n", expected_total);
     }
-    fprintf(stderr, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+    fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
 #ifdef _BOINC_
-    fprintf(stderr, "</extra_info>\n");
+    fprintf(output_target, "</extra_info>\n");
 #endif
 
     delete [] subset;
+    delete [] sums;
+    delete [] new_sums;
 
 #ifdef TIMESTAMP
     time_t end_time;
     time( &end_time );
-    fprintf(stderr, "end time: %s", ctime(&end_time) );
-    fprintf(stderr, "running time: %ld\n", end_time - start_time);
+    fprintf(output_target, "end time: %s", ctime(&end_time) );
+    fprintf(output_target, "running time: %ld\n", end_time - start_time);
 #endif
 
 #ifdef _BOINC_
