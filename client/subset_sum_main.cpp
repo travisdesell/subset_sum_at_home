@@ -4,6 +4,11 @@
 #include <climits>
 #include <time.h>
 
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 /**
  *  Includes required for BOINC
  */
@@ -20,6 +25,7 @@
     #include "mfile.h"
 #endif
 
+using namespace std;
 
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
 
@@ -27,6 +33,8 @@ unsigned long int max_sums_length;
 unsigned int *sums;
 unsigned int *new_sums;
 
+string checkpoint_file = "sss_checkpoint.txt";
+string output_filename = "failed_sets.txt";
 FILE *output_target;
 
 /**
@@ -305,6 +313,7 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
         fprintf(output_target, "  match %4u to %4u ", min, max);
         if (success)    fprintf(output_target, " = pass\n");
         else            fprintf(output_target, " = fail\n");
+        fflush(output_target);
 
 #ifdef FALSE_ONLY
     }
@@ -449,14 +458,12 @@ static inline void generate_next_subset_jl(unsigned int *subset, unsigned int su
     }
 }
 
-/*
-void write_checkpoint(string filename, const unsigned long long iteration) {
+void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail) {
 #ifdef _BOINC_
     string output_path;
     int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
-    
     if (retval) {
-        fprintf(stderr, "APP: error writing sites checkpoint (resolving checkpoint file name)\n");
+        fprintf(stderr, "APP: error writing checkpoint (resolving checkpoint file name)\n");
         return;
     }   
 
@@ -469,14 +476,49 @@ void write_checkpoint(string filename, const unsigned long long iteration) {
         return;
     }   
 
-    checkpoint_file << "seed: " <<  seed << endl;
     checkpoint_file << "iteration: " << iteration << endl;
-    checkpoint_file << "independent_walk: " << independent_walk << endl;
-    write_sites_to_file(checkpoint_file, ".\n", sequences);
+    checkpoint_file << "pass: " << pass << endl;
+    checkpoint_file << "fail: " << fail << endl;
 
     checkpoint_file.close();
 }
-*/
+
+bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail) {
+#ifdef _BOINC_
+    string input_path;
+    int retval = boinc_resolve_filename_s(sites_filename.c_str(), input_path);
+    if (retval) {
+        return 0;
+    }
+
+    ifstream sites_file(input_path.c_str());
+#else
+    ifstream sites_file(sites_filename.c_str());
+#endif
+    if (!sites_file.is_open()) return false;
+
+    string s;
+    sites_file >> s >> iteration;
+    if (s.compare("iteration:") != 0) {
+        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'iteration'\n");
+        exit(0);
+    }
+
+    sites_file >> s >> pass;
+    if (s.compare("pass:") != 0) {
+        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'pass'\n");
+        exit(0);
+    }
+
+    sites_file >> s >> fail;
+    if (s.compare("fail:") != 0) {
+        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'fail'\n");
+        exit(0);
+    }
+
+    return true;
+}
+
 
 int main(int argc, char** argv) {
 #ifdef _BOINC_
@@ -490,14 +532,7 @@ int main(int argc, char** argv) {
 #else
     retval = boinc_init();
 #endif
-
     if (retval) exit(retval);
-#endif
-
-#ifdef _BOINC_
-    output_target = output_file;
-#else 
-    output_target = stdout;
 #endif
 
     if (argc != 3 && argc != 5) {
@@ -515,29 +550,46 @@ int main(int argc, char** argv) {
     unsigned long max_set_value = atol(argv[1]);
     unsigned long subset_size = atol(argv[2]);
 
+    unsigned long long iteration = 0;
+    unsigned long long pass = 0;
+    unsigned long long fail = 0;
+
+    bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail);
+
 #ifdef _BOINC_
-    if (!started_from_checkpoint) {
+    string output_path;
+    retval = boinc_resolve_filename_s(output_filename.c_str(), output_path);
+    if (retval) {
+        fprintf(stderr, "APP: error opening output file for failed sets.\n");
+        exit(0);
+    }   
+
+    if (started_from_checkpoint) {
+        output_target = fopen(output_path.c_str(), "a");
+    } else {
+        output_target = fopen(output_path.c_str(), "w");
+    }
+#else 
+    output_target = stdout;
 #endif
+
+    if (!started_from_checkpoint) {
         fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
         if (max_set_value < subset_size) {
             fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
             exit(0);
         }
-#ifdef _BOINC_
+    } else {
+        fprintf(stderr, "Starting from checkpoint on iteration %llu, with %llu pass, %llu fail.\n", iteration, pass, fail);
     }
-#endif
 
     //timestamp flag
 #ifdef TIMESTAMP
     time_t start_time;
     time( &start_time );
-#ifdef _BOINC_
     if (!started_from_checkpoint) {
-#endif
         fprintf(output_target, "start time: %s", ctime(&start_time) );
-#ifdef _BOINC_
     }
-#endif
 #endif
 
     bool doing_slice = false;
@@ -589,7 +641,22 @@ int main(int argc, char** argv) {
     long double expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
     unsigned long long expected_total_u = n_choose_k(max_set_value - 1, subset_size - 1);
 
-    if (doing_slice) {
+    if (!started_from_checkpoint) {
+        if (doing_slice) {
+            fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
+        } else {
+            fprintf(output_target, "performing %Lf set evaluations.\n", expected_total);
+        }
+    }
+
+    if (started_from_checkpoint) {
+        if (iteration >= expected_total) {
+            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, expected_total);
+            fprintf(stderr, "quitting.\n");
+            exit(0);
+        }
+        generate_ith_subset(iteration, subset, subset_size, max_set_value);
+    } else if (doing_slice) {
         if (starting_subset >= expected_total) {
             fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
@@ -605,18 +672,12 @@ int main(int argc, char** argv) {
     new_sums = new unsigned int[max_sums_length];
 
     bool success;
-    unsigned long long pass = 0;
-    unsigned long long fail = 0;
-    unsigned long long iteration = 0;
 
 #ifdef _BOINC_
-#ifdef _BOINC_
     if (!started_from_checkpoint) {
-#endif
         fprintf(output_target, "<tested_subsets>\n");
-#ifdef _BOINC_
+        fflush(output_target);
     }
-#endif
 #endif
 
 #ifndef NEXT_SUBSET_JUN_LIU
@@ -635,26 +696,33 @@ int main(int argc, char** argv) {
         generate_next_subset_jl(subset, subset_size, max_set_value, bubbles);
 #endif
 
-        iteration++;
         if (doing_slice && iteration >= subsets_to_calculate) break;
 
-#ifdef _BOINC_
-        if (iteration % 10000) {
+        /**
+         *  Need to checkpoint if we found a failed set, otherwise the output file might contain duplicates
+         */
+        if (!success || (iteration % 10000) == 0) {
             double progress;
             if (doing_slice) {
                 progress = (double)iteration / (double)subsets_to_calculate;
             } else {
-                progress = (double)iteration / (double)max;
-            }
+                progress = (double)iteration / (double)expected_total;
+           }
+#ifdef _BOINC_
             boinc_fraction_done(progress);
-    //        printf("\r%lf", progress);
+#endif
+//            printf("\r%lf", progress);
 
-            if ((iteration % 10000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
-    //                printf("\n*****Checkpointing: %d! *****\n", n_checkpoints);
-                    boinc_checkpoint_completed();
+            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
+//                fprintf(stderr, "\n*****Checkpointing! *****\n");
+                write_checkpoint(checkpoint_file, iteration, pass, fail);    
+#ifdef _BOINC_
+                boinc_checkpoint_completed();
+#endif
             }
         }
-#endif
+
+        iteration++;
     }
 
 #ifdef _BOINC_

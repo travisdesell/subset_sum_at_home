@@ -41,6 +41,12 @@ TODO:
         sum of all set elements, we only need to check up to the sum 
         of all set elements divided by 2 (as the sums are symmetric).
 
+    *   We may need to do a different method of checkpointing when it
+        comes to the output file generated which contains the failed
+        sets.  The output file might get corrupted if the application
+        was stopped while it was in the middle of printing out a failed
+        set, which could make for issues in validation.
+
 BUGS:
     *   No known bugs at the moment.
 
