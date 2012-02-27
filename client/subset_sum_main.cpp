@@ -90,20 +90,32 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
         while (pos > 0) {
             if ((msl - min) == count) {
                 red_on = true;
+#ifndef HTML_OUTPUT
                 fprintf(output_target, "\e[32m");
+#else
+                fprintf(output_target, "<b><span class=\"courier_green\">");
+#endif
             }
 
             if (number & pos) fprintf(output_target, "1");
             else {
                 if (red_on) {
+#ifndef HTML_OUTPUT
                     fprintf(output_target, "\e[31m0\e[32m");
+#else
+                    fprintf(output_target, "<span class=\"courier_red\">0</span>");
+#endif
                 } else {
                     fprintf(output_target, "0");
                 }
             }
 
             if ((msl - max) == count) {
+#ifndef HTML_OUTPUT
                 fprintf(output_target, "\e[0m");
+#else
+                fprintf(output_target, "</span></b>");
+#endif
                 red_on = false;
             }
 
@@ -311,8 +323,14 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
 #endif
 
         fprintf(output_target, "  match %4u to %4u ", min, max);
+#ifndef HTML_OUTPUT
         if (success)    fprintf(output_target, " = pass\n");
         else            fprintf(output_target, " = fail\n");
+#else
+        if (success)    fprintf(output_target, " = <span class=\"courier_green\">pass</span><br>\n");
+        else            fprintf(output_target, " = <span class=\"courier_red\">fail</span><br>\n");
+#endif
+
         fflush(output_target);
 
 #ifdef FALSE_ONLY
