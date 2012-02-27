@@ -6,7 +6,7 @@ To compile:
         g++ -Wall -O3 -o subset_sum subset_sum_main.cpp
 
     For BOINC:
-        g++ -DVERBOSE -DFALSE_ONLY -D_BOINC_ -O3 -msse3 -funroll-loops 
+        g++ -DVERBOSE -DFALSE_ONLY -DENABLE_CHECKPOINTING -D_BOINC_ -O3 -msse3 -funroll-loops 
             -ftree-vectorize -Wall subset_sum_main.cpp -o subset_sum
 
 Additional flags:
@@ -17,7 +17,8 @@ Additional flags:
                                and found (1s) will be printed green, and
                                sums that are required and not found (0s)
                                will be red.
-    -DNEXT_SUBSET_JUN_LIU   --  Use Jun's generate next subset algorithm
+    -DNEXT_SUBSET_JUN_LIU   -- Use Jun's generate next subset algorithm
+    -DENABLE_CHECKPOINTING  -- Turns on checkpointing.
 
 To run:
     ./subset_sum <M> <N>

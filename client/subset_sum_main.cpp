@@ -554,7 +554,11 @@ int main(int argc, char** argv) {
     unsigned long long pass = 0;
     unsigned long long fail = 0;
 
+#ifdef ENABLE_CHECKPOINTING
     bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail);
+#else
+    bool started_from_checkpoint = false;
+#endif
 
 #ifdef _BOINC_
     string output_path;
@@ -698,6 +702,7 @@ int main(int argc, char** argv) {
 
         if (doing_slice && iteration >= subsets_to_calculate) break;
 
+#ifdef ENABLE_CHECKPOINTING
         /**
          *  Need to checkpoint if we found a failed set, otherwise the output file might contain duplicates
          */
@@ -721,6 +726,7 @@ int main(int argc, char** argv) {
 #endif
             }
         }
+#endif
 
         iteration++;
     }
