@@ -342,63 +342,34 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
 }
 
 /**
- *  calculates n!
+ *  This only works up 68 choose 34.  After that we need to use a big number library
  */
-long double fac(unsigned int n) {
-    long double result = 1;
-    for (unsigned int i = 1; i <= n; i++) {
-        result *= i;
-    }
-    return result;
-}
+static inline unsigned long long n_choose_k(unsigned int n, unsigned int k) {
+    unsigned int numerator = n - (k - 1);
+    unsigned int denominator = 1;
 
-/**
- *  Calculate n choose k:
- *  TODO: implement this using long long ints instead of long double (there are precision issues to take into a ccount).
- */
-static inline long double n_choose_k(unsigned int n, unsigned int k) {
-    long double expected_total = fac(n) / (fac(k) * fac(n - k));
-    return expected_total;
-}
+    unsigned long long combinations = 1;
 
-static inline unsigned long long n_choose_k_new(unsigned int n, unsigned int k) {
-    unsigned int max, min;
-    if (k < n - k) {
-        max = n - k;
-        min = k;
-    } else {
-        max = k;
-        min = n - k;
+    while (numerator <= n) {
+        combinations *= numerator;
+        combinations /= denominator;
+
+        numerator++;
+        denominator++;
     }
 
-    unsigned int *divisors = new unsigned int[min - 1];
-    for (unsigned int i = 2; i <= min; i++) divisors[i] = i;
-
-    unsigned long long numerator = n;
-    for (unsigned int j = n - 1; j > max; j++) {
-        for (unsigned int k = 0; k < min - 1; k++) {
-            if (numerator % divisors[k] == 0) {
-                numerator /= divisors[k];
-                divisors[k] = 1;
-            }
-        }
-        n *= j;
-    }
-
-    delete [] divisors;
-
-    return n;
+    return combinations;
 }
 
 static inline void generate_ith_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
     unsigned int pos = 0;
     unsigned int current_value = 1;
-    long double nck;
+    unsigned long long nck;
 
     while (pos < subset_size - 1) {
         nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
 
-        if (i < nck || i == 1) { //it seems I also needed to check if i == 1 here, due to precision issues with long double (which could make the fac function in n_choose_k go into an infinite loop.
+        if (i < nck) {
             subset[pos] = current_value;
             pos++;
         } else {
@@ -651,36 +622,34 @@ int main(int argc, char** argv) {
 //    print_subset(subset, subset_size);
 //    fprintf(output_target, "\n");
 
-/*
-    for (unsigned long long i = 0; i < max; i++) {
-        fprintf(output_target, "%15llu ", i);
-        generate_ith_subset(i, subset, subset_size, max_set_value);
-        print_subset(subset, subset_size);
-        fprintf(output_target, "\n");
-    }
-*/
+    unsigned long long expected_total = n_choose_k(max_set_value - 1, subset_size -1);
 
-    long double expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
-    unsigned long long expected_total_u = n_choose_k(max_set_value - 1, subset_size - 1);
+//    for (unsigned long long i = 0; i < expected_total; i++) {
+//        fprintf(output_target, "%15llu ", i);
+//        generate_ith_subset(i, subset, subset_size, max_set_value);
+//        print_subset(subset, subset_size);
+//        fprintf(output_target, "\n");
+//    }
+
 
     if (!started_from_checkpoint) {
         if (doing_slice) {
             fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
         } else {
-            fprintf(output_target, "performing %Lf set evaluations.\n", expected_total);
+            fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
         }
     }
 
     if (started_from_checkpoint) {
         if (iteration >= expected_total) {
-            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, expected_total);
+            fprintf(stderr, "starting subset [%u] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
             exit(0);
         }
         generate_ith_subset(iteration, subset, subset_size, max_set_value);
     } else if (doing_slice) {
         if (starting_subset >= expected_total) {
-            fprintf(stderr, "starting subset [%u] > total subsets [%Lf]\n", starting_subset, expected_total);
+            fprintf(stderr, "starting subset [%u] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
             exit(0);
         }
@@ -760,7 +729,7 @@ int main(int argc, char** argv) {
     if (doing_slice) {
         fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
     } else {
-        fprintf(output_target, "the expected total number of sets is: %Lf, (unsigned long long calculation: %llu)\n", expected_total, expected_total_u);
+        fprintf(output_target, "the expected total number of sets is: %llu\n", expected_total);
     }
     fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 
