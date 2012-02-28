@@ -40,6 +40,7 @@ FILE *output_target;
 
 #ifdef HTML_OUTPUT
 double max_digits;
+double max_set_digits;
 #endif
 
 /**
@@ -67,11 +68,23 @@ void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array
  *  Print out all the elements in a subset
  */
 void print_subset(const unsigned int *subset, const unsigned int subset_size) {
+#ifndef HTML_OUTPUT
     fprintf(output_target, "[");
     for (unsigned int i = 0; i < subset_size; i++) {
         fprintf(output_target, "%4u", subset[i]);
     }
     fprintf(output_target, "]");
+#else
+    fprintf(output_target, "[");
+    for (unsigned int i = 0; i < subset_size; i++) {
+        double whitespaces = (max_set_digits - floor(log10(subset[i]))) - 1;
+
+        for (int j = 0; j < whitespaces; j++) fprintf(output_target, "&nbsp;");
+
+        fprintf(output_target, "%u", subset[i]);
+    }
+    fprintf(output_target, "]");
+#endif
 }
 
 /**
@@ -563,6 +576,10 @@ int main(int argc, char** argv) {
     }
 
     unsigned long max_set_value = atol(argv[1]);
+#ifdef HTML_OUTPUT
+    max_set_digits = ceil(log10(max_set_value)) + 1;
+#endif
+
     unsigned long subset_size = atol(argv[2]);
 
     unsigned long long iteration = 0;
@@ -592,8 +609,41 @@ int main(int argc, char** argv) {
     output_target = stdout;
 #endif
 
+#ifdef HTML_OUTPUT
+    fprintf(output_target, "<!DOCTYPE html PUBLIC \"-//w3c//dtd html 4.0 transitional//en\">\n");
+    fprintf(output_target, "<html>\n");
+    fprintf(output_target, "<head>\n");
+    fprintf(output_target, "  <meta http-equiv=\"Content-Type\"\n");
+    fprintf(output_target, " content=\"text/html; charset=iso-8859-1\">\n");
+    fprintf(output_target, "  <meta name=\"GENERATOR\"\n");
+    fprintf(output_target, " content=\"Mozilla/4.76 [en] (X11; U; Linux 2.4.2-2 i686) [Netscape]\">\n");
+    fprintf(output_target, "  <title>%lu choose %lu</title>\n", max_set_value, subset_size);
+    fprintf(output_target, "\n");
+    fprintf(output_target, "<style type=\"text/css\">\n");
+    fprintf(output_target, "    .courier_green {\n");
+    fprintf(output_target, "        color: #008000;\n");
+    fprintf(output_target, "    }   \n");
+    fprintf(output_target, "</style>\n");
+    fprintf(output_target, "<style type=\"text/css\">\n");
+    fprintf(output_target, "    .courier_red {\n");
+    fprintf(output_target, "        color: #FF0000;\n");
+    fprintf(output_target, "    }   \n");
+    fprintf(output_target, "</style>\n");
+    fprintf(output_target, "\n");
+    fprintf(output_target, "</head><body>\n");
+    fprintf(output_target, "<h1>%lu choose %lu</h1>\n", max_set_value, subset_size);
+    fprintf(output_target, "<hr width=\"100%%\">\n");
+    fprintf(output_target, "\n");
+    fprintf(output_target, "<br>\n");
+    fprintf(output_target, "<tt>\n");
+#endif
+
     if (!started_from_checkpoint) {
+#ifndef HTML_OUTPUT
         fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
+#else
+        fprintf(output_target, "max_set_value: %lu, subset_size: %lu<br>\n", max_set_value, subset_size);
+#endif
         if (max_set_value < subset_size) {
             fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
             exit(0);
@@ -662,6 +712,7 @@ int main(int argc, char** argv) {
 //    }
 
 
+#ifndef HTML_OUTPUT
     if (!started_from_checkpoint) {
         if (doing_slice) {
             fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
@@ -669,6 +720,15 @@ int main(int argc, char** argv) {
             fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
         }
     }
+#else
+    if (!started_from_checkpoint) {
+        if (doing_slice) {
+            fprintf(output_target, "performing %u set evaluations.<br>\n", subsets_to_calculate);
+        } else {
+            fprintf(output_target, "performing %llu set evaluations.<br>\n", expected_total);
+        }
+    }
+#endif
 
     if (started_from_checkpoint) {
         if (iteration >= expected_total) {
@@ -756,12 +816,22 @@ int main(int argc, char** argv) {
     /**
      * pass + fail should = M! / (N! * (M - N)!)
      */
+
+#ifndef HTML_OUTPUT
     if (doing_slice) {
         fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
     } else {
         fprintf(output_target, "the expected total number of sets is: %llu\n", expected_total);
     }
     fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+#else
+    if (doing_slice) {
+        fprintf(output_target, "expected to compute %u sets<br>\n", subsets_to_calculate);
+    } else {
+        fprintf(output_target, "the expected total number of sets is: %llu<br>\n", expected_total);
+    }
+    fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.<br>\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+#endif
 
 #ifdef _BOINC_
     fprintf(output_target, "</extra_info>\n");
@@ -780,6 +850,16 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     boinc_finish(0);
+#endif
+
+#ifdef HTML_OUTPUT
+    fprintf(output_target, "</tt>\n");
+    fprintf(output_target, "<br>\n");
+    fprintf(output_target, "\n");
+    fprintf(output_target, "<hr width=\"100%%\">\n");
+    fprintf(output_target, "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012\n");
+    fprintf(output_target, "</body>\n");
+    fprintf(output_target, "</html>\n");
 #endif
 
     return 0;
