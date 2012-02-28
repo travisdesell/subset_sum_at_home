@@ -345,8 +345,13 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
 
         fprintf(output_target, "  match %4u to %4u ", min, max);
 #ifndef HTML_OUTPUT
+#ifdef ENABLE_COLOR
+        if (success)    fprintf(output_target, " = \e[32mpass\e[0m\n");
+        else            fprintf(output_target, " = \e[31mfail\e[0m\n");
+#else
         if (success)    fprintf(output_target, " = pass\n");
         else            fprintf(output_target, " = fail\n");
+#endif
 #else
         if (success)    fprintf(output_target, " = <span class=\"courier_green\">pass</span><br>\n");
         else            fprintf(output_target, " = <span class=\"courier_red\">fail</span><br>\n");
