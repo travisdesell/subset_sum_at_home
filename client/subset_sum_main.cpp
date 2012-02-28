@@ -40,13 +40,13 @@ FILE *output_target;
 
 #ifdef HTML_OUTPUT
 double max_digits;
-#endif;
+#endif
 
 /**
  *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
  */
 void print_bits(const unsigned int number) {
-    unsigned int pos = 1 << (ELEMENT_SIZE) - 1;
+    unsigned int pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
         if (number & pos) fprintf(output_target, "1");
         else fprintf(output_target, "0");
@@ -90,7 +90,7 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
 
     for (unsigned int i = 0; i < max_sums_length; i++) {
         number = bit_array[i];
-        pos = 1 << (ELEMENT_SIZE) - 1;
+        pos = 1 << (ELEMENT_SIZE - 1);
 
         while (pos > 0) {
             if ((msl - min) == count) {
