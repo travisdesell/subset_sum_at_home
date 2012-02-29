@@ -860,6 +860,12 @@ int main(int argc, char** argv) {
     fprintf(output_target, "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012\n");
     fprintf(output_target, "</body>\n");
     fprintf(output_target, "</html>\n");
+
+    if (fail > 0) {
+        fprintf(stderr, "[url=http://volunteer.cs.und.edu/subset_sum/download/set_%luc%lu.html]%lu choose %lu[/url] -- %llu failures\n", max_set_value, subset_size, max_set_value, subset_size, fail);
+    } else {
+        fprintf(stderr, "[url=http://volunteer.cs.und.edu/subset_sum/download/set_%luc%lu.html]%lu choose %lu[/url] -- pass\n", max_set_value, subset_size, max_set_value, subset_size);
+    }
 #endif
 
     return 0;

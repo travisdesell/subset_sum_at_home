@@ -37,9 +37,8 @@ To run:
 
 
 TODO:
-    *   Use a fast factorial function, speed up the n_choose_k function.
-        Also, speed up the repeated calls to n_choose_k in the generate 
-        subset function.
+    *   generate_ith_subset and the n_choose_k functions need to be
+        updated so they don't fail when M >= 68 and N >= 34.
 
     *   Double check that the 'all_ones', 'or_single', 'or_equal' and 
         'shift_left' functions are working correctly.
