@@ -143,6 +143,7 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
     }
 }
 
+
 /**
  *  Shift all the bits in an array of to the left by shift. src is unchanged, and the result of the shift is put into dest.
  *  length is the number of elements in dest (and src) which should be the same for both
@@ -153,6 +154,8 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
 static inline void shift_left(unsigned int *dest, const unsigned int length, const unsigned int *src, const unsigned int shift) {
     unsigned int full_element_shifts = shift / ELEMENT_SIZE;
     unsigned int sub_shift = shift % ELEMENT_SIZE;
+
+//    printf("shift: %u, full_element_shifts: %u, sub_shift: %u\n", shift, full_element_shifts, sub_shift);
 
     /**
      *  Note that the shift may be more than the length of an unsigned int (ie over 32), this needs to be accounted for, so the element
@@ -172,10 +175,15 @@ static inline void shift_left(unsigned int *dest, const unsigned int length, con
      *     01010111 10100000
      *   which is the whole array shifted to the left by 5
      */
-    for (unsigned int i = 0; i < (length - full_element_shifts) - 1; i++) {
+    unsigned int i;
+    for (i = 0; i < (length - full_element_shifts) - 1; i++) {
         dest[i] = src[i + full_element_shifts] << sub_shift | src[i + full_element_shifts + 1] >> (ELEMENT_SIZE - sub_shift);
     }
-    dest[length - 1] = src[length - 1] << sub_shift;
+    dest[i] = src[length - 1] << sub_shift;
+    i++;
+    for (; i < length; i++) {
+        dest[i] = 0;
+    }
 }
 
 /**
@@ -384,6 +392,10 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
  *  This only works up 68 choose 34.  After that we need to use a big number library
  */
 static inline unsigned long long n_choose_k(unsigned int n, unsigned int k) {
+    /**
+     *  Create pascal's triangle and use it for look up
+     *  implement for ints of arbitrary length (need to implement binary add and less than)
+     */
     unsigned int numerator = n - (k - 1);
     unsigned int denominator = 1;
 
@@ -406,7 +418,8 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
     unsigned long long nck;
 
     while (pos < subset_size - 1) {
-        nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));       //TODO: this does not need to be recalcualted, there is a faster way to do this
+        //TODO: this does not need to be recalcualted, there is a faster way to do this
+        nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));
 
         if (i < nck) {
             subset[pos] = current_value;
