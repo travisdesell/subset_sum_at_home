@@ -176,11 +176,21 @@ static inline void shift_left(unsigned int *dest, const unsigned int length, con
      *   which is the whole array shifted to the left by 5
      */
     unsigned int i;
-    for (i = 0; i < (length - full_element_shifts) - 1; i++) {
-        dest[i] = src[i + full_element_shifts] << sub_shift | src[i + full_element_shifts + 1] >> (ELEMENT_SIZE - sub_shift);
+    for (i = 0; i < length; i++) dest[i] = 0;
+
+    if ((ELEMENT_SIZE - sub_shift) == 32) {
+        for (i = 0; i < (length - full_element_shifts) - 1; i++) {
+            dest[i] = src[i + full_element_shifts] << sub_shift;
+        }
+    } else {
+        for (i = 0; i < (length - full_element_shifts) - 1; i++) {
+            dest[i] = src[i + full_element_shifts] << sub_shift | src[i + full_element_shifts + 1] >> (ELEMENT_SIZE - sub_shift);
+        }
     }
+
     dest[i] = src[length - 1] << sub_shift;
     i++;
+
     for (; i < length; i++) {
         dest[i] = 0;
     }
@@ -419,6 +429,7 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
 
     while (pos < subset_size - 1) {
         //TODO: this does not need to be recalcualted, there is a faster way to do this
+        //Would be the fastest way to do it if we were using a table of n choose k values -- which we should for a big int representation
         nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));
 
         if (i < nck) {
@@ -790,6 +801,7 @@ int main(int argc, char** argv) {
         generate_next_subset_jl(subset, subset_size, max_set_value, bubbles);
 #endif
 
+        iteration++;
         if (doing_slice && iteration >= subsets_to_calculate) break;
 
 #ifdef ENABLE_CHECKPOINTING
@@ -817,8 +829,6 @@ int main(int argc, char** argv) {
             }
         }
 #endif
-
-        iteration++;
     }
 
 #ifdef _BOINC_
