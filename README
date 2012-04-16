@@ -18,7 +18,6 @@ Additional flags:
                                and found (1s) will be printed green, and
                                sums that are required and not found (0s)
                                will be red.
-    -DNEXT_SUBSET_JUN_LIU   -- Use Jun's generate next subset algorithm
     -DENABLE_CHECKPOINTING  -- Turns on checkpointing.
     -DSHOW_SUM_CALCULATION  -- Turns on printing out how the subset sums
                                are calculated. Useful for debugging and
@@ -40,23 +39,14 @@ TODO:
     *   generate_ith_subset and the n_choose_k functions need to be
         updated so they don't fail when M >= 68 and N >= 34.
 
-    *   Double check that the 'all_ones', 'or_single', 'or_equal' and 
-        'shift_left' functions are working correctly.
+    *   Calculate the set sums (without a binary representation) and use
+        it to verify the results from the fast binary implementation.
+        *   Double check that the 'all_ones', 'or_single', 'or_equal' and 
+            'shift_left' functions are working correctly.
 
     *   Update the code so that instead of checking all sums up to the 
         sum of all set elements, we only need to check up to the sum 
         of all set elements divided by 2 (as the sums are symmetric).
 
-    *   We may need to do a different method of checkpointing when it
-        comes to the output file generated which contains the failed
-        sets.  The output file might get corrupted if the application
-        was stopped while it was in the middle of printing out a failed
-        set, which could make for issues in validation.
-
 BUGS:
     *   No known bugs at the moment.
-
-NOTES:
-    *   Added Jun's algorithm for generating the next subset (looks like it 
-        needs to be debugged). This can be turned on with:
-            -DNEXT_SUBSET_JUN_LIU

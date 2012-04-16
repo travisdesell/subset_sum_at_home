@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 /**
  *  Includes required for BOINC
@@ -26,6 +27,12 @@
     #include "mfile.h"
 #endif
 
+/**
+ *  Includes for subset sum
+ */
+
+#include "output.hpp"
+
 using namespace std;
 
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
@@ -38,111 +45,12 @@ string checkpoint_file = "sss_checkpoint.txt";
 string output_filename = "failed_sets.txt";
 FILE *output_target;
 
+vector<unsigned long long> failed_sets = new vector<unsigned long long>();
+
 #ifdef HTML_OUTPUT
 double max_digits;
 double max_set_digits;
 #endif
-
-/**
- *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
- */
-void print_bits(const unsigned int number) {
-    unsigned int pos = 1 << (ELEMENT_SIZE - 1);
-    while (pos > 0) {
-        if (number & pos) fprintf(output_target, "1");
-        else fprintf(output_target, "0");
-        pos >>= 1;
-    }
-}
-
-/**
- * Print out an array of bits
- */
-void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array_length) {
-    for (unsigned int i = 0; i < bit_array_length; i++) {
-        print_bits(bit_array[i]);
-    }
-}
-
-/**
- *  Print out all the elements in a subset
- */
-void print_subset(const unsigned int *subset, const unsigned int subset_size) {
-#ifndef HTML_OUTPUT
-    fprintf(output_target, "[");
-    for (unsigned int i = 0; i < subset_size; i++) {
-        fprintf(output_target, "%4u", subset[i]);
-    }
-    fprintf(output_target, "]");
-#else
-    fprintf(output_target, "[");
-    for (unsigned int i = 0; i < subset_size; i++) {
-        double whitespaces = (max_set_digits - floor(log10(subset[i]))) - 1;
-
-        for (int j = 0; j < whitespaces; j++) fprintf(output_target, "&nbsp;");
-
-        fprintf(output_target, "%u", subset[i]);
-    }
-    fprintf(output_target, "]");
-#endif
-}
-
-/**
- * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
- */
-void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_sums_length, unsigned int min, unsigned int max) {
-    unsigned int msl = max_sums_length * ELEMENT_SIZE;
-    unsigned int number, pos;
-    unsigned int count = 0;
-
-//    fprintf(output_target, " - MSL: %u, MIN: %u, MAX: %u - ", msl, min, max);
-
-    bool red_on = false;
-
-//    fprintf(output_target, " msl - min [%u], msl - max [%u] ", (msl - min), (msl - max));
-
-    for (unsigned int i = 0; i < max_sums_length; i++) {
-        number = bit_array[i];
-        pos = 1 << (ELEMENT_SIZE - 1);
-
-        while (pos > 0) {
-            if ((msl - min) == count) {
-                red_on = true;
-#ifndef HTML_OUTPUT
-                fprintf(output_target, "\e[32m");
-#else
-                fprintf(output_target, "<b><span class=\"courier_green\">");
-#endif
-            }
-
-            if (number & pos) fprintf(output_target, "1");
-            else {
-                if (red_on) {
-#ifndef HTML_OUTPUT
-                    fprintf(output_target, "\e[31m0\e[32m");
-#else
-                    fprintf(output_target, "<span class=\"courier_red\">0</span>");
-#endif
-                } else {
-                    fprintf(output_target, "0");
-                }
-            }
-
-            if ((msl - max) == count) {
-#ifndef HTML_OUTPUT
-                fprintf(output_target, "\e[0m");
-#else
-                fprintf(output_target, "</span></b>");
-#endif
-                red_on = false;
-            }
-
-            pos >>= 1;
-            count++;
-        }
-    }
-}
-
 
 /**
  *  Shift all the bits in an array of to the left by shift. src is unchanged, and the result of the shift is put into dest.
@@ -329,14 +237,14 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
             current = subset[i];
 
             shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-            fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
-            print_bit_array(new_sums, max_sums_length);
-            fprintf(output_target, "\n");
+//            fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
+//            print_bit_array(new_sums, max_sums_length);
+//            fprintf(output_target, "\n");
 
             or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
-            fprintf(output_target, "sums |= new_sums                                               = ");
-            print_bit_array(sums, max_sums_length);
-            fprintf(output_target, "\n");
+//            fprintf(output_target, "sums |= new_sums                                               = ");
+//            print_bit_array(sums, max_sums_length);
+//            fprintf(output_target, "\n");
 
             or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
             fprintf(output_target, "sums != 1 << current - 1                                       = ");
@@ -444,7 +352,7 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
     subset[subset_size - 1] = max_set_value;
 }
 
-static inline void generate_next_subset_td(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
+static inline void generate_next_subset(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
     unsigned int current = subset_size - 2;
     subset[current]++;
 
@@ -473,41 +381,6 @@ static inline void generate_next_subset_td(unsigned int *subset, unsigned int su
 
 //    print_subset(subset, subset_size);
 //    fprintf(output_target, "\n");
-}
-
-/**
- * Jun: changes start
- * This algorithm keeps track of the bubbles between two adjacent elements in a subset.
- * Notion: N = subset_size; M = max_set_value;
- * The subset has (N+2) elements with subset[0] is fixed to be 1, subset[N+1] is fixed to be M, and subset[1] through subset[N] vary in the process.
- * There are (N+1) bubbles between pairs of adjacent elements.
- * Initially, the bubbles are initialized with bubbles[0] = M-N, and bubbles[1]=...=bubbles[N]=0.
- * Bubbles are gradually squeezed from left to right.
- * The process ends when bubbles[0]=...=bubbles[N-1]=0, and bubbles[N]=M-N.
- */
-static inline void generate_next_subset_jl(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value, unsigned int *bubbles) {
-    unsigned int index = subset_size - 1;
-    
-    // Update the new sizes for the bubbles
-    while (bubbles[index] == 0) {
-        index--;
-    }
-    
-    if (index < subset_size-1) {
-        bubbles[index]--;
-        bubbles[index+1]++;
-        bubbles[subset_size-1] += bubbles[subset_size];
-        bubbles[subset_size] = 0;
-    } else { // this means that (index == subset_size-1)
-        bubbles[index]--;
-        bubbles[subset_size]++;
-    }
-    
-    // write the subset under new bubbles
-    subset[0] = 1;
-    for (index = 1; index <= subset_size; index++) {
-        subset[index] = subset[index-1] + bubbles[index];
-    }
 }
 
 void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail) {
@@ -611,7 +484,7 @@ int main(int argc, char** argv) {
     unsigned long long fail = 0;
 
 #ifdef ENABLE_CHECKPOINTING
-    bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail);
+    bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_subsets);
 #else
     bool started_from_checkpoint = false;
 #endif
@@ -709,11 +582,6 @@ int main(int argc, char** argv) {
     delete [] max_set;
 
     unsigned int *subset = new unsigned int[subset_size];
-#ifdef NEXT_SUBSET_JUN_LIU
-    unsigned int *bubbles = new unsigned int[subset_size + 1];
-    bubbles[0] = max_set_value - subset_size;
-    for (unsigned int i = 1; i <= subset_size; i++) bubbles[i] = 0;
-#endif
 
 //    this caused a problem:
 //    
@@ -785,21 +653,17 @@ int main(int argc, char** argv) {
     }
 #endif
 
-#ifndef NEXT_SUBSET_JUN_LIU
     while (subset[0] <= (max_set_value - subset_size + 1)) {
-#else
-    while (bubbles[0] > 0 || bubbles[subset_size] < (max_set_value - subset_size)) {
-#endif
         success = test_subset(subset, subset_size, iteration, starting_subset, doing_slice);
 
-        if (success)    pass++;
-        else            fail++;
+        if (success) {
+            pass++;
+        } else {
+            fail++;
+            failed_sets.push_back(starting_subset + iteration);
+        }
 
-#ifndef NEXT_SUBSET_JUN_LIU
-        generate_next_subset_td(subset, subset_size, max_set_value);
-#else
-        generate_next_subset_jl(subset, subset_size, max_set_value, bubbles);
-#endif
+        generate_next_subset(subset, subset_size, max_set_value);
 
         iteration++;
         if (doing_slice && iteration >= subsets_to_calculate) break;
@@ -822,7 +686,7 @@ int main(int argc, char** argv) {
 
             if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
 //                fprintf(stderr, "\n*****Checkpointing! *****\n");
-                write_checkpoint(checkpoint_file, iteration, pass, fail);    
+                write_checkpoint(checkpoint_file, iteration, pass, fail, failed_subsets);
 #ifdef _BOINC_
                 boinc_checkpoint_completed();
 #endif
