@@ -31,157 +31,26 @@
  *  Includes for subset sum
  */
 
-#include "output.hpp"
+#include "bit_logic.hpp"
+#include "../common/output.hpp"
+#include "../common/n_choose_k.hpp"
 
 using namespace std;
 
-const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;
-
-unsigned long int max_sums_length;
-unsigned int *sums;
-unsigned int *new_sums;
-
 string checkpoint_file = "sss_checkpoint.txt";
 string output_filename = "failed_sets.txt";
-FILE *output_target;
 
-vector<unsigned long long> failed_sets = new vector<unsigned long long>();
+vector<unsigned long long> *failed_sets = new vector<unsigned long long>();
 
 #ifdef HTML_OUTPUT
-double max_digits;
-double max_set_digits;
+double max_digits;                  //extern
+double max_set_digits;              //extern
 #endif
 
-/**
- *  Shift all the bits in an array of to the left by shift. src is unchanged, and the result of the shift is put into dest.
- *  length is the number of elements in dest (and src) which should be the same for both
- *
- *  Performs:
- *      dest = src << shift
- */
-static inline void shift_left(unsigned int *dest, const unsigned int length, const unsigned int *src, const unsigned int shift) {
-    unsigned int full_element_shifts = shift / ELEMENT_SIZE;
-    unsigned int sub_shift = shift % ELEMENT_SIZE;
+unsigned long int max_sums_length;  //extern
+unsigned int *sums;                 //extern
+unsigned int *new_sums;             //extern
 
-//    printf("shift: %u, full_element_shifts: %u, sub_shift: %u\n", shift, full_element_shifts, sub_shift);
-
-    /**
-     *  Note that the shift may be more than the length of an unsigned int (ie over 32), this needs to be accounted for, so the element
-     *  we're shifting from may be ahead a few elements in the array.  When we do the shift, we can do this quickly by getting the target bits
-     *  shifted to the left and doing an or with a shift to the right.
-     *  ie (if our elements had 8 bits):
-     *      00011010 101111101
-     *  doing a shift of 5, we could update the first one to:
-     *     00010111         // src[i + (full_element_shifts = 0) + 1] >> ((ELEMENT_SIZE = 8) - (sub_shift = 5)) // shift right 3
-     *     |
-     *     01000000
-     *  which would be:
-     *     01010111
-     *  then the next would just be the second element shifted to the left by 5:
-     *     10100000
-     *   which results in:
-     *     01010111 10100000
-     *   which is the whole array shifted to the left by 5
-     */
-    unsigned int i;
-    for (i = 0; i < length; i++) dest[i] = 0;
-
-    if ((ELEMENT_SIZE - sub_shift) == 32) {
-        for (i = 0; i < (length - full_element_shifts) - 1; i++) {
-            dest[i] = src[i + full_element_shifts] << sub_shift;
-        }
-    } else {
-        for (i = 0; i < (length - full_element_shifts) - 1; i++) {
-            dest[i] = src[i + full_element_shifts] << sub_shift | src[i + full_element_shifts + 1] >> (ELEMENT_SIZE - sub_shift);
-        }
-    }
-
-    dest[i] = src[length - 1] << sub_shift;
-    i++;
-
-    for (; i < length; i++) {
-        dest[i] = 0;
-    }
-}
-
-/**
- *  updates dest to:
- *      dest != src
- *
- *  Where dest and src are two arrays with length elements
- */
-static inline void or_equal(unsigned int *dest, const unsigned int length, const unsigned int *src) {
-    for (unsigned int i = 0; i < length; i++) dest[i] |= src[i];
-}
-
-/**
- *  Adds the single bit (for a new set element) into dest:
- *
- *  dest |= 1 << number
- */
-static inline void or_single(unsigned int *dest, const unsigned int length, const unsigned int number) {
-    unsigned int pos = number / ELEMENT_SIZE;
-    unsigned int tmp = number % ELEMENT_SIZE;
-
-    dest[length - pos - 1] |= 1 << tmp;
-}
-
-/**
- *  Tests to see if all the bits are 1s between min and max
- */
-static inline bool all_ones(const unsigned int *subset, const unsigned int length, const unsigned int min, const unsigned int max) {
-    unsigned int min_pos = min / ELEMENT_SIZE;
-    unsigned int min_tmp = min % ELEMENT_SIZE;
-    unsigned int max_pos = max / ELEMENT_SIZE;
-    unsigned int max_tmp = max % ELEMENT_SIZE;
-
-    /*
-     * This will print out all the 1s that we're looking for.
-
-    if (min_pos < max_pos) {
-        if (max_tmp > 0) {
-            print_bits(UINT_MAX >> (ELEMENT_SIZE - max_tmp));
-        } else {
-            print_bits(0);
-        }
-        for (unsigned int i = min_pos + 1; i < max_pos - 1; i++) {
-            print_bits(UINT_MAX);
-        }
-        print_bits(UINT_MAX << (min_tmp - 1));
-    } else {
-        print_bits((UINT_MAX << (min_tmp - 1)) & (UINT_MAX >> (ELEMENT_SIZE - max_tmp)));
-    }
-    */
-
-    if (min_pos == max_pos) {
-        unsigned int against = (UINT_MAX >> (ELEMENT_SIZE - max_tmp)) & (UINT_MAX << (min_tmp - 1));
-        return against == (against & subset[length - max_pos - 1]);
-    } else {
-        unsigned int against = UINT_MAX << (min_tmp - 1);
-        if (against != (against & subset[length - min_pos - 1])) {
-            return false;
-        }
-//        fprintf(output_target, "min success\n");
-
-        for (unsigned int i = (length - min_pos - 2); i > (length - max_pos); i--) {
-            if (UINT_MAX != (UINT_MAX & subset[i])) {
-                return false;
-            }
-        }
-//        fprintf(output_target, "mid success\n");
-
-        if (max_tmp > 0) {
-            against = UINT_MAX >> (ELEMENT_SIZE - max_tmp);
-            if (against != (against & subset[length - max_pos - 1])) {
-                return false;
-            }
-        }
-//        fprintf(output_target, "max success\n");
-
-    }
-
-    return true;
-}
 
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
@@ -220,114 +89,7 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
-
-#ifdef VERBOSE
-#ifdef FALSE_ONLY
-    if (!success) {
-#endif
-
-#ifdef SHOW_SUM_CALCULATION
-        for (unsigned int i = 0; i < max_sums_length; i++) {
-            sums[i] = 0;
-            new_sums[i] = 0;
-        }
-
-        fprintf(output_target, "\n");
-        for (unsigned int i = 0; i < subset_size; i++) {
-            current = subset[i];
-
-            shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-//            fprintf(output_target, "new_sums = sums << %2u                                          = ", current);
-//            print_bit_array(new_sums, max_sums_length);
-//            fprintf(output_target, "\n");
-
-            or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
-//            fprintf(output_target, "sums |= new_sums                                               = ");
-//            print_bit_array(sums, max_sums_length);
-//            fprintf(output_target, "\n");
-
-            or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
-            fprintf(output_target, "sums != 1 << current - 1                                       = ");
-            print_bit_array(sums, max_sums_length);
-            fprintf(output_target, "\n");
-        }
-#endif
-
-#ifdef HTML_OUTPUT
-        double whitespaces;
-        if (iteration == 0) whitespaces = (max_digits - 1);
-        else {
-            if (doing_slice)    whitespaces = (max_digits - floor(log10(iteration + starting_subset))) - 1;
-            else                whitespaces = (max_digits - floor(log10(iteration))) - 1;
-        }
-
-        for (int i = 0; i < whitespaces; i++) fprintf(output_target, "&nbsp;");
-#endif
-
-#ifndef HTML_OUTPUT
-        if (doing_slice)    fprintf(output_target, "%15llu ", (iteration + starting_subset));
-        else                fprintf(output_target, "%15llu ", iteration);
-#else
-        if (doing_slice)    fprintf(output_target, "%llu ", (iteration + starting_subset));
-        else                fprintf(output_target, "%llu ", iteration);
-#endif
-        print_subset(subset, subset_size);
-        fprintf(output_target, " = ");
-
-        unsigned int min = max_subset_sum - M;
-        unsigned int max = M;
-#ifdef ENABLE_COLOR
-        print_bit_array_color(sums, max_sums_length, min, max);
-#else 
-        print_bit_array(sums, max_sums_length);
-#endif
-
-        fprintf(output_target, "  match %4u to %4u ", min, max);
-#ifndef HTML_OUTPUT
-#ifdef ENABLE_COLOR
-        if (success)    fprintf(output_target, " = \e[32mpass\e[0m\n");
-        else            fprintf(output_target, " = \e[31mfail\e[0m\n");
-#else
-        if (success)    fprintf(output_target, " = pass\n");
-        else            fprintf(output_target, " = fail\n");
-#endif
-#else
-        if (success)    fprintf(output_target, " = <span class=\"courier_green\">pass</span><br>\n");
-        else            fprintf(output_target, " = <span class=\"courier_red\">fail</span><br>\n");
-#endif
-
-        fflush(output_target);
-
-#ifdef FALSE_ONLY
-    }
-#endif
-#endif
-
     return success;
-}
-
-/**
- *  This only works up 68 choose 34.  After that we need to use a big number library
- */
-static inline unsigned long long n_choose_k(unsigned int n, unsigned int k) {
-    /**
-     *  Create pascal's triangle and use it for look up
-     *  implement for ints of arbitrary length (need to implement binary add and less than)
-     */
-    unsigned int numerator = n - (k - 1);
-    unsigned int denominator = 1;
-
-    unsigned long long combinations = 1;
-
-    while (numerator <= n) {
-        combinations *= numerator;
-        combinations /= denominator;
-
-        numerator++;
-        denominator++;
-    }
-
-    return combinations;
 }
 
 static inline void generate_ith_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
@@ -660,13 +422,19 @@ int main(int argc, char** argv) {
             pass++;
         } else {
             fail++;
-            failed_sets.push_back(starting_subset + iteration);
+            failed_sets->push_back(starting_subset + iteration);
         }
 
         generate_next_subset(subset, subset_size, max_set_value);
 
         iteration++;
         if (doing_slice && iteration >= subsets_to_calculate) break;
+
+#ifdef VERBOSE
+#ifndef FALSE_ONLY
+        print_subset_calculation(iteration, subset, subset_size, success);
+#endif
+#endif
 
 #ifdef ENABLE_CHECKPOINTING
         /**
@@ -684,7 +452,7 @@ int main(int argc, char** argv) {
 #endif
 //            printf("\r%lf", progress);
 
-            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
+            if (!success || (iteration % 600000000) == 0) {      //this works out to be a checkpoint every 100 seconds or so
 //                fprintf(stderr, "\n*****Checkpointing! *****\n");
                 write_checkpoint(checkpoint_file, iteration, pass, fail, failed_subsets);
 #ifdef _BOINC_
@@ -694,6 +462,15 @@ int main(int argc, char** argv) {
         }
 #endif
     }
+
+#ifdef VERBOSE
+#ifdef FALSE_ONLY
+    for (unsigned int i = 0; i < failed_sets->size(); i++) {
+        generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
+        print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
+    }
+#endif
+#endif
 
 #ifdef _BOINC_
     fprintf(output_target, "</tested_subsets>\n");
