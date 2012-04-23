@@ -42,6 +42,8 @@ string output_filename = "failed_sets.txt";
 
 vector<unsigned long long> *failed_sets = new vector<unsigned long long>();
 
+unsigned int checksum = 0;
+
 #ifdef HTML_OUTPUT
 double max_digits;                  //extern
 double max_set_digits;              //extern
@@ -89,6 +91,11 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
+
+#ifdef _BOINC_
+    //Calculate a checksum for verification on BOINC
+    for (unsigned int i = 0; i < max_sums_length; i++) checksum += sums[i];
+#endif
     return success;
 }
 
@@ -145,7 +152,7 @@ static inline void generate_next_subset(unsigned int *subset, unsigned int subse
 //    fprintf(output_target, "\n");
 }
 
-void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail) {
+void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail, const vector<unsigned long long> *failed_sets, const unsigned int checksum) {
 #ifdef _BOINC_
     string output_path;
     int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
@@ -166,11 +173,18 @@ void write_checkpoint(string filename, const unsigned long long iteration, const
     checkpoint_file << "iteration: " << iteration << endl;
     checkpoint_file << "pass: " << pass << endl;
     checkpoint_file << "fail: " << fail << endl;
+    checkpoint_file << "checksum: " << checksum << endl;
+
+    checkpoint_file << "failed_sets: " << failed_sets->size() << endl;
+    for (unsigned int i = 0; i < failed_sets->size(); i++) {
+        checkpoint_file << " " << failed_sets->at(i);
+    }
+    checkpoint_file << endl;
 
     checkpoint_file.close();
 }
 
-bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail) {
+bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail, vector<unsigned long long> *failed_sets, unsigned int &checksum) {
 #ifdef _BOINC_
     string input_path;
     int retval = boinc_resolve_filename_s(sites_filename.c_str(), input_path);
@@ -201,6 +215,29 @@ bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsig
     if (s.compare("fail:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'fail'\n");
         exit(0);
+    }
+
+    sites_file >> s >> checksum;
+    if (s.compare("checksum:") != 0) {
+        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'checksum'\n");
+        exit(0);
+    }
+
+    unsigned int failed_sets_size = 0;
+    sites_file >> s >> failed_sets_size;
+    if (s.compare("failed_sets:") != 0) {
+        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'failed_sets'\n");
+        exit(0);
+    }
+
+    unsigned long long current;
+    for (unsigned int i = 0; i < failed_sets_size; i++) {
+        sites_file >> current;
+        failed_sets->push_back(current);
+        if (!sites_file.good()) {
+            fprintf(stderr, "ERROR: malformed checkpoint! only read '%u' of '%u' failed sets. \n", i, failed_sets_size);
+            exit(0);
+        }
     }
 
     return true;
@@ -246,7 +283,7 @@ int main(int argc, char** argv) {
     unsigned long long fail = 0;
 
 #ifdef ENABLE_CHECKPOINTING
-    bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_subsets);
+    bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #else
     bool started_from_checkpoint = false;
 #endif
@@ -408,13 +445,6 @@ int main(int argc, char** argv) {
 
     bool success;
 
-#ifdef _BOINC_
-    if (!started_from_checkpoint) {
-        fprintf(output_target, "<tested_subsets>\n");
-        fflush(output_target);
-    }
-#endif
-
     while (subset[0] <= (max_set_value - subset_size + 1)) {
         success = test_subset(subset, subset_size, iteration, starting_subset, doing_slice);
 
@@ -454,7 +484,7 @@ int main(int argc, char** argv) {
 
             if (!success || (iteration % 600000000) == 0) {      //this works out to be a checkpoint every 100 seconds or so
 //                fprintf(stderr, "\n*****Checkpointing! *****\n");
-                write_checkpoint(checkpoint_file, iteration, pass, fail, failed_subsets);
+                write_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #ifdef _BOINC_
                 boinc_checkpoint_completed();
 #endif
@@ -463,11 +493,20 @@ int main(int argc, char** argv) {
 #endif
     }
 
+#ifdef _BOINC_
+    fprintf(output_target ,"<checksum>%u</checksum>\n", checksum);
+    fprintf(output_target, "<tested_subsets>\n");
+#endif
+
 #ifdef VERBOSE
 #ifdef FALSE_ONLY
     for (unsigned int i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
+#ifdef _BOINC_
+        fprintf(output_target, " %llu", failed_sets->at(i));
+#else
         print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
+#endif
     }
 #endif
 #endif
@@ -499,6 +538,7 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     fprintf(output_target, "</extra_info>\n");
+    fflush(output_target);
 #endif
 
     delete [] subset;

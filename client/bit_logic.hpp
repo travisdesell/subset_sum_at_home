@@ -2,6 +2,8 @@
 #define SSS_BIT_LOGIC_HPP
 
 #include <climits>
+//#include "../common/output.hpp"
+
 
 const unsigned int ELEMENT_SIZE = sizeof(unsigned int) * 8;                      
 
@@ -150,9 +152,6 @@ static inline bool all_ones(const unsigned int *subset, const unsigned int lengt
 
     return true;
 }
-
-
-
 
 
 #endif
