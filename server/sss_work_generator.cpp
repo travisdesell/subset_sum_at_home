@@ -65,7 +65,7 @@ int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long lo
     DB_WORKUNIT wu;
     char name[256], path[256];
     char command_line[512];
-    const char* infiles[1];
+    const char* infiles[0];
     int retval;
 
     // make a unique name (for the job and its input file)
@@ -112,18 +112,16 @@ int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long lo
     sprintf(command_line, " %u %u %llu %llu", max_set_value, set_size, starting_set, sets_to_evaluate);
     fprintf(stdout, "command line: '%s'\n", command_line);
 
-    /*
     return create_work(
         wu,
         in_template,
         path,
         config.project_path(path),
         infiles,
-        1,
+        0,
         config,
         command_line
     );
-    */
     return 1;
 }
 
@@ -287,6 +285,10 @@ int main(int argc, char** argv) {
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
 
-    //TODO: Parse M and N from command line
+    if (max_set_value <= set_size) {
+        fprintf(stderr, "ERROR: max_set_value (%u) <= set_size (%u)\n", max_set_value, set_size);
+        exit(1);
+    }
+
     make_jobs(max_set_value, set_size);
 }
