@@ -481,8 +481,8 @@ int main(int argc, char** argv) {
             boinc_fraction_done(progress);
 #endif
 //            printf("\r%lf", progress);
-
-            if (!success || (iteration % 600000000) == 0) {      //this works out to be a checkpoint every 100 seconds or so
+//
+            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
 //                fprintf(stderr, "\n*****Checkpointing! *****\n");
                 write_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #ifdef _BOINC_
