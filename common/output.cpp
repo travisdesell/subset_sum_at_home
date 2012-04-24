@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 
+#include "stdint.h"
 #include "output.hpp"
 #include "../client/bit_logic.hpp"
 
@@ -9,10 +10,10 @@ FILE *output_target;
 
 
 /**
- *  Print the bits in an unsigned int.  Note this prints out from right to left (not left to right)
+ *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
  */
-void print_bits(const unsigned int number) {
-    unsigned int pos = 1 << (ELEMENT_SIZE - 1);
+void print_bits(const uint32_t number) {
+    uint32_t pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
         if (number & pos) fprintf(output_target, "1");
         else fprintf(output_target, "0");
@@ -23,8 +24,8 @@ void print_bits(const unsigned int number) {
 /**
  * Print out an array of bits
  */
-void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array_length) {
-    for (unsigned int i = 0; i < bit_array_length; i++) {
+void print_bit_array(const uint32_t *bit_array, const uint32_t bit_array_length) {
+    for (uint32_t i = 0; i < bit_array_length; i++) {
         print_bits(bit_array[i]);
     }
 }
@@ -32,16 +33,16 @@ void print_bit_array(const unsigned int *bit_array, const unsigned int bit_array
 /**
  *  Print out all the elements in a subset
  */
-void print_subset(const unsigned int *subset, const unsigned int subset_size) {
+void print_subset(const uint32_t *subset, const uint32_t subset_size) {
 #ifndef HTML_OUTPUT
     fprintf(output_target, "[");
-    for (unsigned int i = 0; i < subset_size; i++) {
+    for (uint32_t i = 0; i < subset_size; i++) {
         fprintf(output_target, "%4u", subset[i]);
     }
     fprintf(output_target, "]");
 #else
     fprintf(output_target, "[");
-    for (unsigned int i = 0; i < subset_size; i++) {
+    for (uint32_t i = 0; i < subset_size; i++) {
         double whitespaces = (max_set_digits - floor(log10(subset[i]))) - 1;
 
         for (int j = 0; j < whitespaces; j++) fprintf(output_target, "&nbsp;");
@@ -55,10 +56,10 @@ void print_subset(const unsigned int *subset, const unsigned int subset_size) {
 /**
  * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
  */
-void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_sums_length, unsigned int min, unsigned int max) {
-    unsigned int msl = max_sums_length * ELEMENT_SIZE;
-    unsigned int number, pos;
-    unsigned int count = 0;
+void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max) {
+    uint32_t msl = max_sums_length * ELEMENT_SIZE;
+    uint32_t number, pos;
+    uint32_t count = 0;
 
 //    fprintf(output_target, " - MSL: %u, MIN: %u, MAX: %u - ", msl, min, max);
 
@@ -66,7 +67,7 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
 
 //    fprintf(output_target, " msl - min [%u], msl - max [%u] ", (msl - min), (msl - max));
 
-    for (unsigned int i = 0; i < max_sums_length; i++) {
+    for (uint32_t i = 0; i < max_sums_length; i++) {
         number = bit_array[i];
         pos = 1 << (ELEMENT_SIZE - 1);
 
@@ -108,28 +109,28 @@ void print_bit_array_color(const unsigned int *bit_array, unsigned long int max_
     }
 }
 
-void print_subset_calculation(const unsigned long long iteration, unsigned int *subset, const unsigned int subset_size, const bool success) {
+void print_subset_calculation(const unsigned long long iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
 
-    unsigned int M = subset[subset_size - 1];
-    unsigned int max_subset_sum = 0;
+    uint32_t M = subset[subset_size - 1];
+    uint32_t max_subset_sum = 0;
 
-    for (unsigned int i = 0; i < subset_size; i++) max_subset_sum += subset[i];
-    for (unsigned int i = 0; i < max_sums_length; i++) {
+    for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
+    for (uint32_t i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
         new_sums[i] = 0;
     }
 
 
-    for (unsigned int i = 0; i < max_sums_length; i++) {
+    for (uint32_t i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
         new_sums[i] = 0;
     }
 
-    unsigned int current;
+    uint32_t current;
 #ifdef SHOW_SUM_CALCULATION
     fprintf(output_target, "\n");
 #endif
-    for (unsigned int i = 0; i < subset_size; i++) {
+    for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
@@ -169,8 +170,8 @@ void print_subset_calculation(const unsigned long long iteration, unsigned int *
     print_subset(subset, subset_size);
     fprintf(output_target, " = ");
 
-    unsigned int min = max_subset_sum - M;
-    unsigned int max = M;
+    uint32_t min = max_subset_sum - M;
+    uint32_t max = M;
 #ifdef ENABLE_COLOR
     print_bit_array_color(sums, max_sums_length, min, max);
 #else 

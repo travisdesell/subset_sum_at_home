@@ -52,28 +52,28 @@ double max_set_digits;              //extern
 #endif
 
 unsigned long int max_sums_length;  //extern
-unsigned int *sums;                 //extern
-unsigned int *new_sums;             //extern
+uint32_t *sums;                 //extern
+uint32_t *new_sums;             //extern
 
 
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
-static inline bool test_subset(const unsigned int *subset, const unsigned int subset_size, const unsigned long long iteration, const unsigned int starting_subset, const bool doing_slice) {
+static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const unsigned long long iteration, const uint32_t starting_subset, const bool doing_slice) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
-    unsigned int M = subset[subset_size - 1];
-    unsigned int max_subset_sum = 0;
+    uint32_t M = subset[subset_size - 1];
+    uint32_t max_subset_sum = 0;
 
-    for (unsigned int i = 0; i < subset_size; i++) max_subset_sum += subset[i];
+    for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
     
-    for (unsigned int i = 0; i < max_sums_length; i++) {
+    for (uint32_t i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
         new_sums[i] = 0;
     }
 
 //    fprintf(output_target, "\n");
-    unsigned int current;
-    for (unsigned int i = 0; i < subset_size; i++) {
+    uint32_t current;
+    for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
@@ -96,14 +96,14 @@ static inline bool test_subset(const unsigned int *subset, const unsigned int su
 
 #ifdef _BOINC_
     //Calculate a checksum for verification on BOINC
-    for (unsigned int i = 0; i < max_sums_length; i++) checksum += sums[i];
+    for (uint32_t i = 0; i < max_sums_length; i++) checksum += sums[i];
 #endif
     return success;
 }
 
-static inline void generate_ith_subset(unsigned long long i, unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
-    unsigned int pos = 0;
-    unsigned int current_value = 1;
+static inline void generate_ith_subset(unsigned long long i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
+    uint32_t pos = 0;
+    uint32_t current_value = 1;
     unsigned long long nck;
 
     while (pos < subset_size - 1) {
@@ -123,8 +123,8 @@ static inline void generate_ith_subset(unsigned long long i, unsigned int *subse
     subset[subset_size - 1] = max_set_value;
 }
 
-static inline void generate_next_subset(unsigned int *subset, unsigned int subset_size, unsigned int max_set_value) {
-    unsigned int current = subset_size - 2;
+static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
+    uint32_t current = subset_size - 2;
     subset[current]++;
 
 //    fprintf(output_target, "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
@@ -154,7 +154,7 @@ static inline void generate_next_subset(unsigned int *subset, unsigned int subse
 //    fprintf(output_target, "\n");
 }
 
-void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail, const vector<unsigned long long> *failed_sets, const unsigned int checksum) {
+void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail, const vector<unsigned long long> *failed_sets, const uint32_t checksum) {
 #ifdef _BOINC_
     string output_path;
     int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
@@ -178,7 +178,7 @@ void write_checkpoint(string filename, const unsigned long long iteration, const
     checkpoint_file << "checksum: " << checksum << endl;
 
     checkpoint_file << "failed_sets: " << failed_sets->size() << endl;
-    for (unsigned int i = 0; i < failed_sets->size(); i++) {
+    for (uint32_t i = 0; i < failed_sets->size(); i++) {
         checkpoint_file << " " << failed_sets->at(i);
     }
     checkpoint_file << endl;
@@ -186,7 +186,7 @@ void write_checkpoint(string filename, const unsigned long long iteration, const
     checkpoint_file.close();
 }
 
-bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail, vector<unsigned long long> *failed_sets, unsigned int &checksum) {
+bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail, vector<unsigned long long> *failed_sets, uint32_t &checksum) {
 #ifdef _BOINC_
     string input_path;
     int retval = boinc_resolve_filename_s(sites_filename.c_str(), input_path);
@@ -225,7 +225,7 @@ bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsig
         exit(0);
     }
 
-    unsigned int failed_sets_size = 0;
+    uint32_t failed_sets_size = 0;
     sites_file >> s >> failed_sets_size;
     if (s.compare("failed_sets:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'failed_sets'\n");
@@ -233,7 +233,7 @@ bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsig
     }
 
     unsigned long long current;
-    for (unsigned int i = 0; i < failed_sets_size; i++) {
+    for (uint32_t i = 0; i < failed_sets_size; i++) {
         sites_file >> current;
         failed_sets->push_back(current);
         if (!sites_file.good()) {
@@ -360,8 +360,8 @@ int main(int argc, char** argv) {
 #endif
 
     bool doing_slice = false;
-    unsigned int starting_subset = 0;
-    unsigned int subsets_to_calculate = 0;
+    uint32_t starting_subset = 0;
+    uint32_t subsets_to_calculate = 0;
 
     if (argc == 5) {
         doing_slice = true;
@@ -372,9 +372,9 @@ int main(int argc, char** argv) {
     /**
      *  Calculate the maximum set length (in bits) so we can use this for printing out the values cleanly.
      */
-    unsigned int *max_set = new unsigned int[subset_size];
-    for (unsigned int i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
-    for (unsigned int i = 0; i < subset_size; i++) max_sums_length += max_set[i];
+    uint32_t *max_set = new uint32_t[subset_size];
+    for (uint32_t i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
+    for (uint32_t i = 0; i < subset_size; i++) max_sums_length += max_set[i];
 
 //    sums_length /= 2;
     max_sums_length /= ELEMENT_SIZE;
@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
 
     delete [] max_set;
 
-    unsigned int *subset = new unsigned int[subset_size];
+    uint32_t *subset = new uint32_t[subset_size];
 
 //    this caused a problem:
 //    
@@ -406,20 +406,16 @@ int main(int argc, char** argv) {
 
 
 #ifndef HTML_OUTPUT
-    if (!started_from_checkpoint) {
-        if (doing_slice) {
-            fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
-        } else {
-            fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
-        }
+    if (doing_slice) {
+        fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
+    } else {
+        fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
     }
 #else
-    if (!started_from_checkpoint) {
-        if (doing_slice) {
-            fprintf(output_target, "performing %u set evaluations.<br>\n", subsets_to_calculate);
-        } else {
-            fprintf(output_target, "performing %llu set evaluations.<br>\n", expected_total);
-        }
+    if (doing_slice) {
+        fprintf(output_target, "performing %u set evaluations.<br>\n", subsets_to_calculate);
+    } else {
+        fprintf(output_target, "performing %llu set evaluations.<br>\n", expected_total);
     }
 #endif
 
@@ -438,12 +434,12 @@ int main(int argc, char** argv) {
         }
         generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
     } else {
-        for (unsigned int i = 0; i < subset_size - 1; i++) subset[i] = i + 1;
+        for (uint32_t i = 0; i < subset_size - 1; i++) subset[i] = i + 1;
         subset[subset_size - 1] = max_set_value;
     }
 
-    sums = new unsigned int[max_sums_length];
-    new_sums = new unsigned int[max_sums_length];
+    sums = new uint32_t[max_sums_length];
+    new_sums = new uint32_t[max_sums_length];
 
     bool success;
 
@@ -497,12 +493,12 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     fprintf(output_target ,"<checksum>%u</checksum>\n", checksum);
-    fprintf(output_target, "<tested_subsets>\n");
+    fprintf(output_target, "<failed_subsets>\n");
 #endif
 
 #ifdef VERBOSE
 #ifdef FALSE_ONLY
-    for (unsigned int i = 0; i < failed_sets->size(); i++) {
+    for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
 #ifdef _BOINC_
         fprintf(output_target, " %llu", failed_sets->at(i));
@@ -514,7 +510,7 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef _BOINC_
-    fprintf(output_target, "</tested_subsets>\n");
+    fprintf(output_target, "\n</failed_subsets>\n");
     fprintf(output_target, "<extra_info>\n");
 #endif
 
