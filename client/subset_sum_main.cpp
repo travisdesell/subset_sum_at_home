@@ -11,6 +11,8 @@
 #include <sstream>
 #include <vector>
 
+#include "stdint.h"
+
 /**
  *  Includes required for BOINC
  */
@@ -42,7 +44,7 @@ string output_filename = "failed_sets.txt";
 
 vector<unsigned long long> *failed_sets = new vector<unsigned long long>();
 
-unsigned int checksum = 0;
+uint32_t checksum = 0;
 
 #ifdef HTML_OUTPUT
 double max_digits;                  //extern
