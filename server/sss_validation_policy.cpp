@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
 
 #include "boinc_db.h"
 #include "error_numbers.h"
@@ -15,6 +18,8 @@
 #include "validator.h"
 #include "validate_util.h"
 #include "validate_util2.h"
+
+#include "../common/util.hpp"
 
 using namespace std;
 
@@ -32,9 +37,11 @@ using namespace std;
 int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, bool& retry) {
     RESULT canonical_result;
     int retval;
-    int n_matches;
+    int min_quorum = wu.min_quorum;
 
     vector<bool> had_error(false, results.size());
+    vector<unsigned int> checksums;
+    vector<string> failed_vector;
 
     for (int i = 0; i < results.size(); i++) {
         if (had_error[i]) continue;
@@ -48,53 +55,62 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
             return retval;
         }
 
-        for (unsigned int i=0; i<files.size(); i++) {
-            FILE_INFO& fi = files[i];
-            if (fi.no_validate) continue;
-            string file_path = fi.path;
+        //There is only one file in the result
+        FILE_INFO& fi = files[0];
+        if (fi.no_validate) continue;
+        string file_path = fi.path;
 
-            cout << "file path: " << file_path << endl;
+        cout << "file path: " << file_path << endl;
 
-        }
+        //read the entire contents of the file into a string
+        ifstream sites_file(file_path.c_str());
+        std::string fc;
 
+        sites_file.seekg(0, std::ios::end);   
+        fc.reserve(sites_file.tellg());
+        sites_file.seekg(0, std::ios::beg);
 
-/*
+        fc.assign((std::istreambuf_iterator<char>(sites_file)), std::istreambuf_iterator<char>());
+
+        cout << fc << endl;
+
         try {
-            result_fitness_i = parse_xml<double>(results[i].stderr_out, "search_likelihood", atof);
+            unsigned int checksum = parse_xml<unsigned int>( fc, "checksum", convert_unsigned_int );
+            log_messages.printf(MSG_CRITICAL,"checksum: %u\n", checksum);
+            checksums.push_back(checksum);
+
+            string failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
+            std::remove( failed_sets.begin(), failed_sets.end(), '\r' );
+            log_messages.printf(MSG_CRITICAL, "failed_sets: '%s'\n", failed_sets.c_str());
+            failed_vector.push_back(failed_sets);
         } catch (string error_message) {
-            log_messages.printf(MSG_CRITICAL, "ea_validation_policy check_set([RESULT#%d %s]) failed with error: %s\n", results[i].id, results[i].name, error_message.c_str());
+            log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_set([RESULT#%d %s]) failed with error: %s\n", results[i].id, results[i].name, error_message.c_str());
             results[i].outcome = RESULT_OUTCOME_VALIDATE_ERROR;
             results[i].validate_state = VALIDATE_STATE_INVALID;
             had_error[i] = true;
             continue;
-        }
+         }
+    }
 
-        n_matches = 1;
+    unsigned int n_matches;
+
+    for (int i = 0; i < results.size(); i++) {
+        if (had_error[i]) continue;
+
+        vector<bool> matches(false, results.size());
+        n_matches = 0;
 
         for (int j = 0; j < results.size(); j++) {
-            if (had_error[j]) continue;
-
-            if (i == j) {
-                matches[i] = true;
-                continue;
-            }
-
-            try {
-                result_fitness_j = parse_xml<double>(results[j].stderr_out, "search_likelihood", atof);
-            } catch (string error_message) {
-                log_messages.printf(MSG_CRITICAL, "ea_validation_policy check_set([RESULT#%d %s]) failed with error: %s\n", results[j].id, results[j].name, error_message.c_str());
-                results[j].outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-                results[j].validate_state = VALIDATE_STATE_INVALID;
-                matches[j] = false;
-                had_error[j] = true;
-                continue;
-            }
-
-            if (fabs(result_fitness_j - result_fitness_i) < FITNESS_ERROR_BOUND) {
-                n_matches++;
+            if (i == 0) {
                 matches[j] = true;
-            } else {
+                continue;
+            }
+
+            if (checksums[i] != checksums[j] && failed_vector[i].compare( failed_vector[j] ) == 0) {
                 matches[j] = false;
+            } else {
+                matches[j] = true;
+                n_matches++;
             }
         }
 
@@ -107,12 +123,15 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
                 if (matches[k]) results[k].validate_state = VALIDATE_STATE_VALID;
                 else results[k].validate_state = VALIDATE_STATE_INVALID;
             }
+
+            log_messages.printf(MSG_CRITICAL, "FOUND CANONICAL RESULT: %d -- %s\n", results[i].id, results[i].name);
+//            exit(0);
             return 0;
         }
-*/
     }
 
-    exit(0);
+    cout << "DID NOT FIND CANONICAL RESULT." << endl;
+//    exit(0);
 
     return 0;
 }
