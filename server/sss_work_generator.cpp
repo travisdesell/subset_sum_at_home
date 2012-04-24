@@ -84,7 +84,7 @@ int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long lo
     fclose(f);
 
     double number_of_sets = 1e9;        //TODO: figure out the number of sets for a decent sized workunit
-    double fpops_per_set = 1e3;         //TODO: figure out an estimate of how many fpops per set calculation
+    double fpops_per_set = 15 * 1e3;         //TODO: figure out an estimate of how many fpops per set calculation
     double fpops_est = fpops_per_set * number_of_sets;
 
 
