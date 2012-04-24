@@ -109,7 +109,7 @@ void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums
     }
 }
 
-void print_subset_calculation(const unsigned long long iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
+void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
 
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;

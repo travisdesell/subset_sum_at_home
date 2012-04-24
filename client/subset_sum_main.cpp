@@ -42,7 +42,7 @@ using namespace std;
 string checkpoint_file = "sss_checkpoint.txt";
 string output_filename = "failed_sets.txt";
 
-vector<unsigned long long> *failed_sets = new vector<unsigned long long>();
+vector<uint64_t> *failed_sets = new vector<uint64_t>();
 
 uint32_t checksum = 0;
 
@@ -59,7 +59,7 @@ uint32_t *new_sums;             //extern
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
-static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const unsigned long long iteration, const uint32_t starting_subset, const bool doing_slice) {
+static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const uint64_t iteration, const uint32_t starting_subset, const bool doing_slice) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;
@@ -101,10 +101,10 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     return success;
 }
 
-static inline void generate_ith_subset(unsigned long long i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
+static inline void generate_ith_subset(uint64_t i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
     uint32_t pos = 0;
     uint32_t current_value = 1;
-    unsigned long long nck;
+    uint64_t nck;
 
     while (pos < subset_size - 1) {
         //TODO: this does not need to be recalcualted, there is a faster way to do this
@@ -154,7 +154,7 @@ static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, 
 //    fprintf(output_target, "\n");
 }
 
-void write_checkpoint(string filename, const unsigned long long iteration, const unsigned long long pass, const unsigned long long fail, const vector<unsigned long long> *failed_sets, const uint32_t checksum) {
+void write_checkpoint(string filename, const uint64_t iteration, const uint64_t pass, const uint64_t fail, const vector<uint64_t> *failed_sets, const uint32_t checksum) {
 #ifdef _BOINC_
     string output_path;
     int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
@@ -186,7 +186,7 @@ void write_checkpoint(string filename, const unsigned long long iteration, const
     checkpoint_file.close();
 }
 
-bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsigned long long &pass, unsigned long long &fail, vector<unsigned long long> *failed_sets, uint32_t &checksum) {
+bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass, uint64_t &fail, vector<uint64_t> *failed_sets, uint32_t &checksum) {
 #ifdef _BOINC_
     string input_path;
     int retval = boinc_resolve_filename_s(sites_filename.c_str(), input_path);
@@ -232,7 +232,7 @@ bool read_checkpoint(string sites_filename, unsigned long long &iteration, unsig
         exit(0);
     }
 
-    unsigned long long current;
+    uint64_t current;
     for (uint32_t i = 0; i < failed_sets_size; i++) {
         sites_file >> current;
         failed_sets->push_back(current);
@@ -280,9 +280,9 @@ int main(int argc, char** argv) {
 
     unsigned long subset_size = atol(argv[2]);
 
-    unsigned long long iteration = 0;
-    unsigned long long pass = 0;
-    unsigned long long fail = 0;
+    uint64_t iteration = 0;
+    uint64_t pass = 0;
+    uint64_t fail = 0;
 
 #ifdef ENABLE_CHECKPOINTING
     bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
@@ -391,13 +391,13 @@ int main(int argc, char** argv) {
 //    print_subset(subset, subset_size);
 //    fprintf(output_target, "\n");
 
-    unsigned long long expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
+    uint64_t expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
 
 #ifdef HTML_OUTPUT
     max_digits = ceil(log10(expected_total));
 #endif
 
-//    for (unsigned long long i = 0; i < expected_total; i++) {
+//    for (uint64_t i = 0; i < expected_total; i++) {
 //        fprintf(output_target, "%15llu ", i);
 //        generate_ith_subset(i, subset, subset_size, max_set_value);
 //        print_subset(subset, subset_size);
