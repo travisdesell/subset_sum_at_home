@@ -96,7 +96,17 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 
 #ifdef _BOINC_
     //Calculate a checksum for verification on BOINC
-    for (uint32_t i = 0; i < max_sums_length; i++) checksum += sums[i];
+//    for (uint32_t i = 0; i < max_sums_length; i++) checksum += sums[i];
+
+    //Alternate checksum calculation with overflow detection
+    for (uint32_t i = 0; i < max_sums_length; i++) {
+        if (UINT32_MAX - checksum <= sums[i]) {
+            checksum += sums[i];
+        } else { // avoid the overflow
+            checksum = sums[i] - (UINT32_MAX - checksum);
+        } 
+    }
+
 #endif
     return success;
 }
