@@ -494,6 +494,8 @@ int main(int argc, char** argv) {
 #ifdef _BOINC_
     fprintf(output_target ,"<checksum>%u</checksum>\n", checksum);
     fprintf(output_target, "<failed_subsets>\n");
+    fprintf(stderr,"<checksum>%u</checksum>\n", checksum);
+    fprintf(stderr, "<failed_subsets>\n");
 #endif
 
 #ifdef VERBOSE
@@ -501,6 +503,7 @@ int main(int argc, char** argv) {
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
 #ifdef _BOINC_
+        fprintf(stderr, " %llu", failed_sets->at(i));
         fprintf(output_target, " %llu", failed_sets->at(i));
 #else
         print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
@@ -510,6 +513,8 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef _BOINC_
+    fprintf(stderr, "\n</failed_subsets>\n");
+    fprintf(stderr, "<extra_info>\n");
     fprintf(output_target, "\n</failed_subsets>\n");
     fprintf(output_target, "<extra_info>\n");
 #endif
@@ -528,13 +533,18 @@ int main(int argc, char** argv) {
 #else
     if (doing_slice) {
         fprintf(output_target, "expected to compute %u sets<br>\n", subsets_to_calculate);
+        fprintf(stderr, "expected to compute %u sets<br>\n", subsets_to_calculate);
     } else {
         fprintf(output_target, "the expected total number of sets is: %llu<br>\n", expected_total);
+        fprintf(stderr, "the expected total number of sets is: %llu<br>\n", expected_total);
     }
     fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.<br>\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+    fprintf(stderr, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.<br>\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 #endif
 
 #ifdef _BOINC_
+    fprintf(stderr, "</extra_info>\n");
+    fflush(stderr);
     fprintf(output_target, "</extra_info>\n");
     fflush(output_target);
 #endif

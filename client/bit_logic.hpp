@@ -112,38 +112,38 @@ static inline bool all_ones(const uint32_t *subset, const uint32_t length, const
 
     if (min_pos < max_pos) {
         if (max_tmp > 0) {
-            print_bits(UINT_MAX >> (ELEMENT_SIZE - max_tmp));
+            print_bits(UINT32_MAX >> (ELEMENT_SIZE - max_tmp));
         } else {
             print_bits(0);
         }
         for (uint32_t i = min_pos + 1; i < max_pos - 1; i++) {
-            print_bits(UINT_MAX);
+            print_bits(UINT32_MAX);
         }
-        print_bits(UINT_MAX << (min_tmp - 1));
+        print_bits(UINT32_MAX << (min_tmp - 1));
     } else {
-        print_bits((UINT_MAX << (min_tmp - 1)) & (UINT_MAX >> (ELEMENT_SIZE - max_tmp)));
+        print_bits((UINT32_MAX << (min_tmp - 1)) & (UINT32_MAX >> (ELEMENT_SIZE - max_tmp)));
     }
     */
 
     if (min_pos == max_pos) {
-        uint32_t against = (UINT_MAX >> (ELEMENT_SIZE - max_tmp)) & (UINT_MAX << (min_tmp - 1));
+        uint32_t against = (UINT32_MAX >> (ELEMENT_SIZE - max_tmp)) & (UINT32_MAX << (min_tmp - 1));
         return against == (against & subset[length - max_pos - 1]);
     } else {
-        uint32_t against = UINT_MAX << (min_tmp - 1);
+        uint32_t against = UINT32_MAX << (min_tmp - 1);
         if (against != (against & subset[length - min_pos - 1])) {
             return false;
         }
 //        fprintf(output_target, "min success\n");
 
         for (uint32_t i = (length - min_pos - 2); i > (length - max_pos); i--) {
-            if (UINT_MAX != (UINT_MAX & subset[i])) {
+            if (UINT32_MAX != (UINT32_MAX & subset[i])) {
                 return false;
             }
         }
 //        fprintf(output_target, "mid success\n");
 
         if (max_tmp > 0) {
-            against = UINT_MAX >> (ELEMENT_SIZE - max_tmp);
+            against = UINT32_MAX >> (ELEMENT_SIZE - max_tmp);
             if (against != (against & subset[length - max_pos - 1])) {
                 return false;
             }
