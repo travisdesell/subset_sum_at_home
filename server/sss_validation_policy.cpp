@@ -78,15 +78,23 @@ int get_data_from_result(uint32_t &checksum, string &failed_sets, RESULT &result
         checksum = parse_xml<uint32_t>( fc, "checksum", convert_unsigned_int );
         log_messages.printf(MSG_DEBUG,"checksum: %u\n", checksum);
 
-        failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
+        failed_sets = parse_xml<string>( fc, "failed_subsets", convert_string );
         std::remove( failed_sets.begin(), failed_sets.end(), '\r' );
-        log_messages.printf(MSG_DEBUG, "failed_sets: '%s'\n", failed_sets.c_str());
+        log_messages.printf(MSG_DEBUG, "failed_subsets: '%s'\n", failed_sets.c_str());
 
     } catch (string error_message) {
-        log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
-        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-        result.validate_state = VALIDATE_STATE_INVALID;
-        throw 0;
+        //Should eventually be able to remove this after everyone starts using application 0.04
+        try {
+            failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
+            std::remove( failed_sets.begin(), failed_sets.end(), '\r' );
+            log_messages.printf(MSG_DEBUG, "failed_sets: '%s'\n", failed_sets.c_str());
+
+        } catch (string error_message) {
+            log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
+            result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
+            result.validate_state = VALIDATE_STATE_INVALID;
+            throw 0;
+        }
     }
 
     return 0;
