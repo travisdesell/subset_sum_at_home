@@ -7,6 +7,8 @@
 #include <sstream>
 
 
+#include "stdint.h"
+
 #include "boinc_db.h"
 #include "error_numbers.h"
 
@@ -22,6 +24,74 @@
 #include "../common/util.hpp"
 
 using namespace std;
+
+
+string get_file_as_string(string file_path) throw (int) {
+    //read the entire contents of the file into a string
+    ifstream sites_file(file_path.c_str());
+
+    if (!sites_file.is_open()) {
+        throw 0;
+    }
+
+    std::string fc;
+
+    sites_file.seekg(0, std::ios::end);   
+    fc.reserve(sites_file.tellg());
+    sites_file.seekg(0, std::ios::beg);
+
+    fc.assign((std::istreambuf_iterator<char>(sites_file)), std::istreambuf_iterator<char>());
+
+    return fc;
+}
+
+int get_data_from_result(uint32_t &checksum, string &failed_sets, RESULT &result) {
+    vector<FILE_INFO> files;
+
+    int retval = get_output_file_infos(result, files);
+    if (retval) {
+        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] get_data_from_result: can't get output filenames for new result\n", result.id, result.name);
+        return retval;
+    }
+
+    //There is only one file in the result
+    FILE_INFO& fi = files[0];
+//    if (fi.no_validate) continue;             I THINK ITS SAFE TO COMMENT THIS OUT
+    string file_path = fi.path;
+
+    log_messages.printf(MSG_DEBUG, "file path: %s\n", file_path.c_str());
+
+    string fc;
+    try {
+        fc = get_file_as_string(file_path);
+    } catch (int err) {
+        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] get_data_from_result: could not open file for result\n", result.id, result.name);
+        log_messages.printf(MSG_CRITICAL, "     file path: %s\n", file_path.c_str());
+        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
+        result.validate_state = VALIDATE_STATE_INVALID;
+        throw 0;
+    }
+
+    cout << fc << endl;
+
+    try {
+        checksum = parse_xml<uint32_t>( fc, "checksum", convert_unsigned_int );
+        log_messages.printf(MSG_DEBUG,"checksum: %u\n", checksum);
+
+        failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
+        std::remove( failed_sets.begin(), failed_sets.end(), '\r' );
+        log_messages.printf(MSG_DEBUG, "failed_sets: '%s'\n", failed_sets.c_str());
+
+    } catch (string error_message) {
+        log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
+        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
+        result.validate_state = VALIDATE_STATE_INVALID;
+        throw 0;
+    }
+
+    return 0;
+}
+
 
 /*
  * Given a set of results, check for a canonical result,
@@ -40,59 +110,29 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
     int min_quorum = wu.min_quorum;
 
     vector<bool> had_error(false, results.size());
-    vector<unsigned int> checksums;
+    vector<uint32_t> checksums;
     vector<string> failed_vector;
 
     for (int i = 0; i < results.size(); i++) {
-        if (had_error[i]) continue;
-        vector<bool> matches;
-        matches.resize(results.size());
-
-        vector<FILE_INFO> files;
-        retval = get_output_file_infos(results[i], files);
-        if (retval) {
-            log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] check_pair: can't get output filenames for new result\n", results[i].id, results[i].name);
-            return retval;
-        }
-
-        //There is only one file in the result
-        FILE_INFO& fi = files[0];
-        if (fi.no_validate) continue;
-        string file_path = fi.path;
-
-        cout << "file path: " << file_path << endl;
-
-        //read the entire contents of the file into a string
-        ifstream sites_file(file_path.c_str());
-        std::string fc;
-
-        sites_file.seekg(0, std::ios::end);   
-        fc.reserve(sites_file.tellg());
-        sites_file.seekg(0, std::ios::beg);
-
-        fc.assign((std::istreambuf_iterator<char>(sites_file)), std::istreambuf_iterator<char>());
-
-        cout << fc << endl;
+        uint32_t checksum;
+        string failed_sets;
 
         try {
-            unsigned int checksum = parse_xml<unsigned int>( fc, "checksum", convert_unsigned_int );
-            log_messages.printf(MSG_CRITICAL,"checksum: %u\n", checksum);
-            checksums.push_back(checksum);
+            retval = get_data_from_result(checksum, failed_sets, results[i]);
+            if (retval) return retval;
 
-            string failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
-            std::remove( failed_sets.begin(), failed_sets.end(), '\r' );
-            log_messages.printf(MSG_CRITICAL, "failed_sets: '%s'\n", failed_sets.c_str());
-            failed_vector.push_back(failed_sets);
-        } catch (string error_message) {
-            log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_set([RESULT#%d %s]) failed with error: %s\n", results[i].id, results[i].name, error_message.c_str());
-            results[i].outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-            results[i].validate_state = VALIDATE_STATE_INVALID;
+        } catch (int err) {
             had_error[i] = true;
+            checksums.push_back(0);
+            failed_vector.push_back(" ");
             continue;
-         }
+        }
+
+        checksums.push_back(checksum);
+        failed_vector.push_back(failed_sets);
     }
 
-    unsigned int n_matches;
+    uint32_t n_matches;
 
     for (int i = 0; i < results.size(); i++) {
         if (had_error[i]) continue;
@@ -124,69 +164,43 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
                 else results[k].validate_state = VALIDATE_STATE_INVALID;
             }
 
-            log_messages.printf(MSG_CRITICAL, "FOUND CANONICAL RESULT: %d -- %s\n", results[i].id, results[i].name);
+            log_messages.printf(MSG_DEBUG, "FOUND CANONICAL RESULT: %d -- %s\n", results[i].id, results[i].name);
 //            exit(0);
             return 0;
         }
     }
 
-    cout << "DID NOT FIND CANONICAL RESULT." << endl;
+    log_messages.printf(MSG_DEBUG, "DID NOT FIND CANONICAL WORKUNIT: %d -- %s\n", wu.id, wu.name);
 //    exit(0);
 
     return 0;
 }
 
 void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
-    vector<FILE_INFO> canonical_files;
-    vector<FILE_INFO> new_files;
     int retval;
 
-    retval = get_output_file_infos(canonical_result, canonical_files);
-    if (retval) {
-        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] check_pair: can't get output filenames for canonical result\n", canonical_result.id, canonical_result.name);
-        exit(0);
-    }
+    uint32_t new_checksum;
+    string new_failed_sets;
 
-    retval = get_output_file_infos(new_result, new_files);
-    if (retval) {
-        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] check_pair: can't get output filenames for new result\n", new_result.id, new_result.name);
-        exit(0);
-    }
-
-    for (unsigned int i=0; i < new_files.size(); i++) {
-        FILE_INFO& fi = new_files[i];
-        if (fi.no_validate) continue;
-        string file_path = fi.path;
-
-        cout << "file path: " << file_path << endl;
-
-    }
-    exit(0);
-
-/*
-    double new_fitness, canonical_fitness;
+    uint32_t canonical_checksum;
+    string canonical_failed_sets;
 
     try {
-        new_fitness = parse_xml<double>(new_result.stderr_out, "search_likelihood", atof);
-    } catch (string error_message) {
-        log_messages.printf(MSG_CRITICAL, "ea_validation_policy check_pair([RESULT#%d %s]) failed with error: %s\n", new_result.id, new_result.name, error_message.c_str());
-        new_result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-        new_result.validate_state = VALIDATE_STATE_INVALID;
+        retval = get_data_from_result(new_checksum, new_failed_sets, new_result);
+        if (retval) return;
+
+    } catch (int err) {
+        log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_pair([RESULT#%d %s]) failed getting checksum and failed sets from new result.\n", new_result.id, new_result.name);
         return;
     }
 
     try {
-        canonical_fitness = parse_xml<double>(canonical_result.stderr_out, "search_likelihood", atof);
-    } catch (string error_message) {
-        log_messages.printf(MSG_CRITICAL, "ea_validation_policy check_set([RESULT#%d %s]) failed with TERMINAL error: %s -- COULD NOT PARSE CANONICAL RESULT XML\n", canonical_result.id, canonical_result.name, error_message.c_str());
+        retval = get_data_from_result(canonical_checksum, canonical_failed_sets, canonical_result);
+        if (retval) return;
+
+    } catch (int err) {
+        log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_pair([RESULT#%d %s]) failed getting checksum and failed sets from canonical result.\n", canonical_result.id, canonical_result.name);
         exit(0);
     }
-
-    if (fabs(new_fitness - canonical_fitness) < FITNESS_ERROR_BOUND) {
-        new_result.validate_state = VALIDATE_STATE_VALID;
-    } else {
-        new_result.validate_state = VALIDATE_STATE_INVALID;
-    }
-*/
 }
 
