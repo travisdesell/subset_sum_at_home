@@ -45,7 +45,7 @@ string get_file_as_string(string file_path) throw (int) {
     return fc;
 }
 
-int get_data_from_result(uint32_t &checksum, string &failed_sets, RESULT &result) {
+int get_data_from_result(uint32_t &checksum, string &failed_sets, RESULT &result) throw (int) {
     vector<FILE_INFO> files;
 
     int retval = get_output_file_infos(result, files);
@@ -149,12 +149,12 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
         n_matches = 0;
 
         for (int j = 0; j < results.size(); j++) {
-            if (i == 0) {
+            if (i == j) {
                 matches[j] = true;
                 continue;
             }
 
-            if (checksums[i] != checksums[j] && failed_vector[i].compare( failed_vector[j] ) == 0) {
+            if (checksums[i] != checksums[j] || failed_vector[i].compare( failed_vector[j] ) != 0) {
                 matches[j] = false;
             } else {
                 matches[j] = true;
