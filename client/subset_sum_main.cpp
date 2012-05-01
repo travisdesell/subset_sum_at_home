@@ -535,10 +535,13 @@ int main(int argc, char** argv) {
 
 #ifndef HTML_OUTPUT
     if (doing_slice) {
+        fprintf(stderr, "expected to compute %u sets\n", subsets_to_calculate);
         fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
     } else {
+        fprintf(stderr, "the expected total number of sets is: %llu\n", expected_total);
         fprintf(output_target, "the expected total number of sets is: %llu\n", expected_total);
     }
+    fprintf(stderr, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
     fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
 #else
     if (doing_slice) {
