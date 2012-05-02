@@ -503,8 +503,11 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     fprintf(output_target ,"<checksum>%u</checksum>\n", checksum);
+    fprintf(output_target, "<uint32_max>%u</uint32_max>", UINT32_MAX);
     fprintf(output_target, "<failed_subsets>\n");
+
     fprintf(stderr,"<checksum>%u</checksum>\n", checksum);
+    fprintf(stderr, "<uint32_max>%u</uint32_max>", UINT32_MAX);
     fprintf(stderr, "<failed_subsets>\n");
 #endif
 
