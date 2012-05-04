@@ -1,4 +1,4 @@
-#include <cstdio>
+
 #include <cstdlib>
 #include <cstring>
 #include <climits>
@@ -59,7 +59,7 @@ uint32_t *new_sums;             //extern
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
-static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const uint64_t iteration, const uint32_t starting_subset, const bool doing_slice) {
+static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const uint64_t iteration, bool doing_slice) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;
@@ -370,13 +370,16 @@ int main(int argc, char** argv) {
 #endif
 
     bool doing_slice = false;
-    uint32_t starting_subset = 0;
-    uint32_t subsets_to_calculate = 0;
+    uint64_t starting_subset = 0;
+    uint64_t subsets_to_calculate = 0;
 
     if (argc == 5) {
         doing_slice = true;
-        starting_subset = atoi(argv[3]);
-        subsets_to_calculate = atoi(argv[4]);
+        starting_subset = atol(argv[3]);
+        subsets_to_calculate = atol(argv[4]);
+
+        cerr << "argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
+        cerr << "starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
     }
 
     /**
@@ -417,13 +420,13 @@ int main(int argc, char** argv) {
 
 #ifndef HTML_OUTPUT
     if (doing_slice) {
-        fprintf(output_target, "performing %u set evaluations.\n", subsets_to_calculate);
+        fprintf(output_target, "performing %llu set evaluations.\n", subsets_to_calculate);
     } else {
         fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
     }
 #else
     if (doing_slice) {
-        fprintf(output_target, "performing %u set evaluations.<br>\n", subsets_to_calculate);
+        fprintf(output_target, "performing %llu set evaluations.<br>\n", subsets_to_calculate);
     } else {
         fprintf(output_target, "performing %llu set evaluations.<br>\n", expected_total);
     }
@@ -431,14 +434,14 @@ int main(int argc, char** argv) {
 
     if (started_from_checkpoint) {
         if (iteration >= expected_total) {
-            fprintf(stderr, "starting subset [%u] > total subsets [%llu]\n", starting_subset, expected_total);
+            fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
             exit(0);
         }
         generate_ith_subset(iteration, subset, subset_size, max_set_value);
     } else if (doing_slice) {
         if (starting_subset >= expected_total) {
-            fprintf(stderr, "starting subset [%u] > total subsets [%llu]\n", starting_subset, expected_total);
+            fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
             exit(0);
         }
@@ -454,7 +457,7 @@ int main(int argc, char** argv) {
     bool success;
 
     while (subset[0] <= (max_set_value - subset_size + 1)) {
-        success = test_subset(subset, subset_size, iteration, starting_subset, doing_slice);
+        success = test_subset(subset, subset_size, iteration, doing_slice);
 
         if (success) {
             pass++;
@@ -538,8 +541,8 @@ int main(int argc, char** argv) {
 
 #ifndef HTML_OUTPUT
     if (doing_slice) {
-        fprintf(stderr, "expected to compute %u sets\n", subsets_to_calculate);
-        fprintf(output_target, "expected to compute %u sets\n", subsets_to_calculate);
+        fprintf(stderr, "expected to compute %llu sets\n", subsets_to_calculate);
+        fprintf(output_target, "expected to compute %llu sets\n", subsets_to_calculate);
     } else {
         fprintf(stderr, "the expected total number of sets is: %llu\n", expected_total);
         fprintf(output_target, "the expected total number of sets is: %llu\n", expected_total);
