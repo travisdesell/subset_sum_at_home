@@ -255,6 +255,36 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
     return true;
 }
 
+uint64_t parse_uint64_t(const char* arg) {
+    string n(arg);
+    uint64_t result = 0;
+    uint64_t place = 1;
+    uint16_t val = 0;
+
+    for (int i = n.size() - 1; i >= 0; i--) {
+//        fprintf(stderr, "char[%d]: '%c'\n", i, n[i]);
+        if      (n[i] == '0') val = 0;
+        else if (n[i] == '1') val = 1;
+        else if (n[i] == '2') val = 2;
+        else if (n[i] == '3') val = 3;
+        else if (n[i] == '4') val = 4;
+        else if (n[i] == '5') val = 5;
+        else if (n[i] == '6') val = 6;
+        else if (n[i] == '7') val = 7; 
+        else if (n[i] == '8') val = 8;
+        else if (n[i] == '9') val = 9;
+        else {
+            fprintf(stderr, "ERROR in parse_uint64_t, unrecognized character in string: '%c'\n", n[i]);
+            exit(0);
+        }
+        
+        result += place * val;
+        place *= 10;
+    }
+
+    return result;
+}
+
 
 int main(int argc, char** argv) {
 #ifdef _BOINC_
@@ -283,12 +313,12 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
-    unsigned long max_set_value = atol(argv[1]);
+    unsigned long max_set_value = parse_uint64_t(argv[1]);
 #ifdef HTML_OUTPUT
     max_set_digits = ceil(log10(max_set_value)) + 1;
 #endif
 
-    unsigned long subset_size = atol(argv[2]);
+    unsigned long subset_size = parse_uint64_t(argv[2]);
 
     uint64_t iteration = 0;
     uint64_t pass = 0;
@@ -375,8 +405,8 @@ int main(int argc, char** argv) {
 
     if (argc == 5) {
         doing_slice = true;
-        starting_subset = atol(argv[3]);
-        subsets_to_calculate = atol(argv[4]);
+        starting_subset = parse_uint64_t(argv[3]);
+        subsets_to_calculate = parse_uint64_t(argv[4]);
 
         cerr << "argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
         cerr << "starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
