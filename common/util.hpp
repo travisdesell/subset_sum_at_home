@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <stdint.h>
 
 using namespace std;
 
@@ -13,11 +14,11 @@ string convert_string(const char* cstr) {
     return str;
 }
 
-unsigned int convert_unsigned_int(const char* cstr) {
+uint32_t convert_unsigned_int(const char* cstr) {
     stringstream str_value;
     str_value << cstr;
 
-    unsigned int int_value;
+    uint32_t int_value;
     str_value >> int_value;
 
     return int_value;

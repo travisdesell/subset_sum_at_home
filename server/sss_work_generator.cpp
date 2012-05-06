@@ -61,10 +61,12 @@ int seqno;
 
 // create one new job
 //
-int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long long starting_set, unsigned long long sets_to_evaluate) {
+int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, uint64_t sets_to_evaluate) {
     DB_WORKUNIT wu;
+
     char name[256], path[256];
     char command_line[512];
+    char additional_xml[512];
     const char* infiles[0];
     int retval;
 
@@ -112,6 +114,11 @@ int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long lo
     sprintf(command_line, " %u %u %llu %llu", max_set_value, set_size, starting_set, sets_to_evaluate);
     fprintf(stdout, "command line: '%s'\n", command_line);
 
+    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+    fprintf(stdout, "total sets: %llu, starting_set + sets_to_evaluate: %llu\n", total_sets, starting_set + sets_to_evaluate);
+
+    sprintf(additional_xml, "<credit>60</credit>");
+
     return create_work(
         wu,
         in_template,
@@ -120,12 +127,13 @@ int make_job(unsigned int max_set_value, unsigned int set_size, unsigned long lo
         infiles,
         0,
         config,
-        command_line
+        command_line,
+        additional_xml
     );
     return 1;
 }
 
-int make_jobs(unsigned int max_set_value, unsigned int set_size) {
+int make_jobs(uint32_t max_set_value, uint32_t set_size) {
     int unsent_results;
     int retval;
 
@@ -144,13 +152,13 @@ int make_jobs(unsigned int max_set_value, unsigned int set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    unsigned int SETS_PER_WORKUNIT = 2203961430;    //maybe have this as a #define
+    uint64_t SETS_PER_WORKUNIT = 2203961430;    //maybe have this as a #define
                                                     //this should give a workunit around 30 minutes
 
-    unsigned long long total_sets = n_choose_k(max_set_value, set_size);
-    unsigned long long current_set = 0;
+    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+    uint64_t current_set = 0;
 
-    unsigned long long total_generated = 0;
+    uint64_t total_generated = 0;
 
     while (current_set < total_sets) {
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
@@ -193,7 +201,7 @@ void usage(char *name) {
 int main(int argc, char** argv) {
     int i, retval;
     char buf[256];
-    unsigned int max_set_value, set_size;
+    uint32_t max_set_value, set_size;
 
     bool max_set_value_found = false;
     bool set_size_found = false;
