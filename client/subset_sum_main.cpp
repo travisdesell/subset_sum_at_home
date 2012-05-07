@@ -214,32 +214,47 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
     sites_file >> s >> iteration;
     if (s.compare("iteration:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'iteration'\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     sites_file >> s >> pass;
     if (s.compare("pass:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'pass'\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     sites_file >> s >> fail;
     if (s.compare("fail:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'fail'\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     sites_file >> s >> checksum;
     if (s.compare("checksum:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'checksum'\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     uint32_t failed_sets_size = 0;
     sites_file >> s >> failed_sets_size;
     if (s.compare("failed_sets:") != 0) {
         fprintf(stderr, "ERROR: malformed checkpoint! could not read 'failed_sets'\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     uint64_t current;
@@ -248,7 +263,10 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
         failed_sets->push_back(current);
         if (!sites_file.good()) {
             fprintf(stderr, "ERROR: malformed checkpoint! only read '%u' of '%u' failed sets. \n", i, failed_sets_size);
-            exit(0);
+#ifdef _BOINC_
+            boinc_finish(1);
+#endif
+            exit(1);
         }
     }
 
@@ -275,7 +293,10 @@ uint64_t parse_uint64_t(const char* arg) {
         else if (n[i] == '9') val = 9;
         else {
             fprintf(stderr, "ERROR in parse_uint64_t, unrecognized character in string: '%c'\n", n[i]);
-            exit(0);
+#ifdef _BOINC_
+            boinc_finish(1);
+#endif
+            exit(1);
         }
         
         result += place * val;
@@ -310,7 +331,10 @@ int main(int argc, char** argv) {
         fprintf(stderr, "\t<N>      :   The number of elements allowed in a set.\n");
         fprintf(stderr, "\t<i>      :   (optional) start at the <i>th generated subset.\n");
         fprintf(stderr, "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset).\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }
 
     unsigned long max_set_value = parse_uint64_t(argv[1]);
@@ -335,7 +359,10 @@ int main(int argc, char** argv) {
     retval = boinc_resolve_filename_s(output_filename.c_str(), output_path);
     if (retval) {
         fprintf(stderr, "APP: error opening output file for failed sets.\n");
-        exit(0);
+#ifdef _BOINC_
+        boinc_finish(1);
+#endif
+        exit(1);
     }   
 
     if (started_from_checkpoint) {
@@ -384,7 +411,10 @@ int main(int argc, char** argv) {
 #endif
         if (max_set_value < subset_size) {
             fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
-            exit(0);
+#ifdef _BOINC_
+            boinc_finish(1);
+#endif
+            exit(1);
         }
     } else {
         fprintf(stderr, "Starting from checkpoint on iteration %llu, with %llu pass, %llu fail.\n", iteration, pass, fail);
@@ -466,14 +496,20 @@ int main(int argc, char** argv) {
         if (iteration >= expected_total) {
             fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
-            exit(0);
+#ifdef _BOINC_
+            boinc_finish(1);
+#endif
+            exit(1);
         }
         generate_ith_subset(iteration, subset, subset_size, max_set_value);
     } else if (doing_slice) {
         if (starting_subset >= expected_total) {
             fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
             fprintf(stderr, "quitting.\n");
-            exit(0);
+#ifdef _BOINC_
+            boinc_finish(1);
+#endif
+            exit(1);
         }
         generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
     } else {
