@@ -2,9 +2,10 @@
 #define SSS_OUTPUT_H
 
 #include "stdint.h"
-#include <cstdio>
+#include <iostream>
+#include <fstream>
 
-extern FILE *output_target;
+extern std::ostream output_target;
 
 void print_bits(const uint32_t number);
 void print_bit_array(const uint32_t *bit_array, const uint32_t bit_array_length);

@@ -1,13 +1,18 @@
 #include <cstdio>
 #include <cmath>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #include "stdint.h"
 #include "output.hpp"
 #include "../client/bit_logic.hpp"
 
 //ALL THESE GLOBALS SHOULD PROBABLY BE IN THEIR OWN HEADER FILE
-FILE *output_target;
 
+using namespace std;
+
+ostream output_target( cout.rdbuf() );
 
 /**
  *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
@@ -15,8 +20,8 @@ FILE *output_target;
 void print_bits(const uint32_t number) {
     uint32_t pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
-        if (number & pos) fprintf(output_target, "1");
-        else fprintf(output_target, "0");
+        if (number & pos) output_target << "1";
+        else output_target << "0";
         pos >>= 1;
     }
 }
@@ -34,23 +39,21 @@ void print_bit_array(const uint32_t *bit_array, const uint32_t bit_array_length)
  *  Print out all the elements in a subset
  */
 void print_subset(const uint32_t *subset, const uint32_t subset_size) {
+    output_target << "[";
 #ifndef HTML_OUTPUT
-    fprintf(output_target, "[");
     for (uint32_t i = 0; i < subset_size; i++) {
-        fprintf(output_target, "%4u", subset[i]);
+        output_target << setw(4) << subset[i];
     }
-    fprintf(output_target, "]");
 #else
-    fprintf(output_target, "[");
     for (uint32_t i = 0; i < subset_size; i++) {
         double whitespaces = (max_set_digits - floor(log10(subset[i]))) - 1;
 
-        for (int j = 0; j < whitespaces; j++) fprintf(output_target, "&nbsp;");
+        for (int j = 0; j < whitespaces; j++) output_target << "&nbsp;";
 
-        fprintf(output_target, "%u", subset[i]);
+        output_target << setw(4) << subset[i];
     }
-    fprintf(output_target, "]");
 #endif
+    output_target << "]";
 }
 
 /**
@@ -75,30 +78,30 @@ void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums
             if ((msl - min) == count) {
                 red_on = true;
 #ifndef HTML_OUTPUT
-                fprintf(output_target, "\e[32m");
+                output_target << "\e[32m";
 #else
-                fprintf(output_target, "<b><span class=\"courier_green\">");
+                output_target << "<b><span class=\"courier_green\">";
 #endif
             }
 
-            if (number & pos) fprintf(output_target, "1");
+            if (number & pos) output_target << "1";
             else {
                 if (red_on) {
 #ifndef HTML_OUTPUT
-                    fprintf(output_target, "\e[31m0\e[32m");
+                    output_target << "\e[31m0\e[32m";
 #else
-                    fprintf(output_target, "<span class=\"courier_red\">0</span>");
+                    output_target << "<span class=\"courier_red\">0</span>";
 #endif
                 } else {
-                    fprintf(output_target, "0");
+                    output_target << "0";
                 }
             }
 
             if ((msl - max) == count) {
 #ifndef HTML_OUTPUT
-                fprintf(output_target, "\e[0m");
+                output_target << "\e[0m";
 #else
-                fprintf(output_target, "</span></b>");
+                output_target << "</span></b>";
 #endif
                 red_on = false;
             }
@@ -128,7 +131,7 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
 
     uint32_t current;
 #ifdef SHOW_SUM_CALCULATION
-    fprintf(output_target, "\n");
+    output_target << "\n";
 #endif
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
@@ -145,9 +148,9 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
 
         or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
 #ifdef SHOW_SUM_CALCULATION
-        fprintf(output_target, "sums != 1 << current - 1                                       = ");
+        output_target << "sums != 1 << current - 1                                       = ";
         print_bit_array(sums, max_sums_length);
-        fprintf(output_target, "\n");
+        output_target << "\n";
 #endif
     }
 
@@ -159,16 +162,16 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
         whitespaces = (max_digits - floor(log10(iteration))) - 1;
     }
 
-    for (int i = 0; i < whitespaces; i++) fprintf(output_target, "&nbsp;");
+    for (int i = 0; i < whitespaces; i++) output_target << "&nbsp;";
 #endif
 
 #ifndef HTML_OUTPUT
-    fprintf(output_target, "%15llu ", iteration);
+    output_target << setw(15) << iteration;
 #else
-    fprintf(output_target, "%llu ", iteration);
+    output_target << setw(15) << iteration;
 #endif
     print_subset(subset, subset_size);
-    fprintf(output_target, " = ");
+    output_target << " = ";
 
     uint32_t min = max_subset_sum - M;
     uint32_t max = M;
@@ -178,21 +181,21 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
     print_bit_array(sums, max_sums_length);
 #endif
 
-    fprintf(output_target, "  match %4u to %4u ", min, max);
+    output_target << "  match " << setw(4) << min << " to " << setw(4) << max;
 #ifndef HTML_OUTPUT
 #ifdef ENABLE_COLOR
-    if (success)    fprintf(output_target, " = \e[32mpass\e[0m\n");
-    else            fprintf(output_target, " = \e[31mfail\e[0m\n");
+    if (success)    output_target << " = \e[32mpass\e[0m" << endl;
+    else            output_target << " = \e[31mfail\e[0m" << endl;
 #else
-    if (success)    fprintf(output_target, " = pass\n");
-    else            fprintf(output_target, " = fail\n");
+    if (success)    output_target << " = pass" << endl;
+    else            output_target << " = fail" << endl;
 #endif
 #else
-    if (success)    fprintf(output_target, " = <span class=\"courier_green\">pass</span><br>\n");
-    else            fprintf(output_target, " = <span class=\"courier_red\">fail</span><br>\n");
+    if (success)    output_target << " = <span class=\"courier_green\">pass</span><br>" << endl;
+    else            output_target << " = <span class=\"courier_red\">fail</span><br>" << endl;
 #endif
 
-    fflush(output_target);
+    output_target.flush();
 }
 
 

@@ -71,25 +71,25 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
         new_sums[i] = 0;
     }
 
-//    fprintf(output_target, "\n");
+//    output_target << "\n");
     uint32_t current;
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-//        fprintf(output_target, "new_sums = sums << %2u    = ", current);
+//        output_target << "new_sums = sums << %2u    = ", current);
 //        print_bit_array(new_sums, sums_length);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
 
         or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
-//        fprintf(output_target, "sums |= new_sums         = ");
+//        output_target << "sums |= new_sums         = ");
 //        print_bit_array(sums, sums_length);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
 
         or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
-//        fprintf(output_target, "sums != 1 << current - 1 = ");
+//        output_target << "sums != 1 << current - 1 = ");
 //        print_bit_array(sums, sums_length);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
@@ -137,17 +137,17 @@ static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, 
     uint32_t current = subset_size - 2;
     subset[current]++;
 
-//    fprintf(output_target, "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
+//    output_target << "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
 
 //    print_subset(subset, subset_size);
-//    fprintf(output_target, "\n");
+//    output_target << "\n");
 
     while (current > 0 && subset[current] > (max_set_value - (subset_size - (current + 1)))) {
         subset[current - 1]++;
         current--;
 
 //        print_subset(subset, subset_size);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
     }
 
     while (current < subset_size - 2) {
@@ -155,13 +155,13 @@ static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, 
         current++;
 
 //        print_subset(subset, subset_size);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
     }
 
     subset[subset_size - 1] = max_set_value;
 
 //    print_subset(subset, subset_size);
-//    fprintf(output_target, "\n");
+//    output_target << "\n");
 }
 
 void write_checkpoint(string filename, const uint64_t iteration, const uint64_t pass, const uint64_t fail, const vector<uint64_t> *failed_sets, const uint32_t checksum) {
@@ -169,7 +169,7 @@ void write_checkpoint(string filename, const uint64_t iteration, const uint64_t 
     string output_path;
     int retval = boinc_resolve_filename_s(filename.c_str(), output_path);
     if (retval) {
-        fprintf(stderr, "APP: error writing checkpoint (resolving checkpoint file name)\n");
+        cerr << "APP: error writing checkpoint (resolving checkpoint file name)" << endl;
         return;
     }   
 
@@ -178,7 +178,7 @@ void write_checkpoint(string filename, const uint64_t iteration, const uint64_t 
     ofstream checkpoint_file(filename.c_str());
 #endif
     if (!checkpoint_file.is_open()) {
-        fprintf(stderr, "APP: error writing checkpoint (opening checkpoint file)\n");
+        cerr << "APP: error writing checkpoint (opening checkpoint file)" << endl;
         return;
     }   
 
@@ -213,7 +213,7 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
     string s;
     sites_file >> s >> iteration;
     if (s.compare("iteration:") != 0) {
-        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'iteration'\n");
+        cerr << "ERROR: malformed checkpoint! could not read 'iteration'" << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -222,7 +222,7 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
 
     sites_file >> s >> pass;
     if (s.compare("pass:") != 0) {
-        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'pass'\n");
+        cerr << "ERROR: malformed checkpoint! could not read 'pass'" << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -231,7 +231,7 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
 
     sites_file >> s >> fail;
     if (s.compare("fail:") != 0) {
-        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'fail'\n");
+        cerr << "ERROR: malformed checkpoint! could not read 'fail'" << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -240,17 +240,18 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
 
     sites_file >> s >> checksum;
     if (s.compare("checksum:") != 0) {
-        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'checksum'\n");
+        cerr << "ERROR: malformed checkpoint! could not read 'checksum'" << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
         exit(1);
     }
+    cerr << "read checksum " << checksum << " from checkpoint." << endl;
 
     uint32_t failed_sets_size = 0;
     sites_file >> s >> failed_sets_size;
     if (s.compare("failed_sets:") != 0) {
-        fprintf(stderr, "ERROR: malformed checkpoint! could not read 'failed_sets'\n");
+        cerr << "ERROR: malformed checkpoint! could not read 'failed_sets'" << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -262,7 +263,7 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
         sites_file >> current;
         failed_sets->push_back(current);
         if (!sites_file.good()) {
-            fprintf(stderr, "ERROR: malformed checkpoint! only read '%u' of '%u' failed sets. \n", i, failed_sets_size);
+            cerr << "ERROR: malformed checkpoint! only read '" << i << "' of '" << failed_sets_size << "' failed sets." << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
@@ -280,7 +281,7 @@ uint64_t parse_uint64_t(const char* arg) {
     uint16_t val = 0;
 
     for (int i = n.size() - 1; i >= 0; i--) {
-//        fprintf(stderr, "char[%d]: '%c'\n", i, n[i]);
+//        cerr << "char[%d]: '%c'\n", i, n[i]);
         if      (n[i] == '0') val = 0;
         else if (n[i] == '1') val = 1;
         else if (n[i] == '2') val = 2;
@@ -292,7 +293,7 @@ uint64_t parse_uint64_t(const char* arg) {
         else if (n[i] == '8') val = 8;
         else if (n[i] == '9') val = 9;
         else {
-            fprintf(stderr, "ERROR in parse_uint64_t, unrecognized character in string: '%c'\n", n[i]);
+            cerr << "ERROR in parse_uint64_t, unrecognized character in string: '" <<  n[i] << "'" << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
@@ -323,14 +324,14 @@ int main(int argc, char** argv) {
 #endif
 
     if (argc != 3 && argc != 5) {
-        fprintf(stderr, "ERROR, wrong command line arguments.\n");
-        fprintf(stderr, "USAGE:\n");
-        fprintf(stderr, "\t./subset_sum <M> <N> [<i> <count>]\n\n");
-        fprintf(stderr, "argumetns:\n");
-        fprintf(stderr, "\t<M>      :   The maximum value allowed in the sets.\n");
-        fprintf(stderr, "\t<N>      :   The number of elements allowed in a set.\n");
-        fprintf(stderr, "\t<i>      :   (optional) start at the <i>th generated subset.\n");
-        fprintf(stderr, "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset).\n");
+        cerr << "ERROR, wrong command line arguments." << endl;
+        cerr << "USAGE:" << endl;
+        cerr << "\t./subset_sum <M> <N> [<i> <count>]" << endl << endl;
+        cerr << "argumetns:" << endl;
+        cerr << "\t<M>      :   The maximum value allowed in the sets." << endl;
+        cerr << "\t<N>      :   The number of elements allowed in a set." << endl;
+        cerr << "\t<i>      :   (optional) start at the <i>th generated subset." << endl;
+        cerr << "\t<count>  :   (optional) only test <count> subsets (starting at the <i>th subset)." << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -358,7 +359,7 @@ int main(int argc, char** argv) {
     string output_path;
     retval = boinc_resolve_filename_s(output_filename.c_str(), output_path);
     if (retval) {
-        fprintf(stderr, "APP: error opening output file for failed sets.\n");
+        cerr << "APP: error opening output file for failed sets." << endl;
 #ifdef _BOINC_
         boinc_finish(1);
 #endif
@@ -366,58 +367,56 @@ int main(int argc, char** argv) {
     }   
 
     if (started_from_checkpoint) {
-        output_target = fopen(output_path.c_str(), "a");
+        output_target = ofstream(output_path.c_str(), "a");
     } else {
-        output_target = fopen(output_path.c_str(), "w");
+        output_target = ofstream(output_path.c_str(), "w");
     }
-#else 
-    output_target = stdout;
 #endif
 
 #ifdef HTML_OUTPUT
-    fprintf(output_target, "<!DOCTYPE html PUBLIC \"-//w3c//dtd html 4.0 transitional//en\">\n");
-    fprintf(output_target, "<html>\n");
-    fprintf(output_target, "<head>\n");
-    fprintf(output_target, "  <meta http-equiv=\"Content-Type\"\n");
-    fprintf(output_target, " content=\"text/html; charset=iso-8859-1\">\n");
-    fprintf(output_target, "  <meta name=\"GENERATOR\"\n");
-    fprintf(output_target, " content=\"Mozilla/4.76 [en] (X11; U; Linux 2.4.2-2 i686) [Netscape]\">\n");
-    fprintf(output_target, "  <title>%lu choose %lu</title>\n", max_set_value, subset_size);
-    fprintf(output_target, "\n");
-    fprintf(output_target, "<style type=\"text/css\">\n");
-    fprintf(output_target, "    .courier_green {\n");
-    fprintf(output_target, "        color: #008000;\n");
-    fprintf(output_target, "    }   \n");
-    fprintf(output_target, "</style>\n");
-    fprintf(output_target, "<style type=\"text/css\">\n");
-    fprintf(output_target, "    .courier_red {\n");
-    fprintf(output_target, "        color: #FF0000;\n");
-    fprintf(output_target, "    }   \n");
-    fprintf(output_target, "</style>\n");
-    fprintf(output_target, "\n");
-    fprintf(output_target, "</head><body>\n");
-    fprintf(output_target, "<h1>%lu choose %lu</h1>\n", max_set_value, subset_size);
-    fprintf(output_target, "<hr width=\"100%%\">\n");
-    fprintf(output_target, "\n");
-    fprintf(output_target, "<br>\n");
-    fprintf(output_target, "<tt>\n");
+    output_target << "<!DOCTYPE html PUBLIC \"-//w3c//dtd html 4.0 transitional//en\">" << endl;
+    output_target << "<html>" << endl;
+    output_target << "<head>" << endl;
+    output_target << "  <meta http-equiv=\"Content-Type\"" << endl;
+    output_target << " content=\"text/html; charset=iso-8859-1\">" << endl;
+    output_target << "  <meta name=\"GENERATOR\"" << endl;
+    output_target << " content=\"Mozilla/4.76 [en] (X11; U; Linux 2.4.2-2 i686) [Netscape]\">" << endl;
+    output_target << "  <title>" << max_set_value << " choose " << subset_size << "</title>" << endl;
+    output_target << "" << endl;
+    output_target << "<style type=\"text/css\">" << endl;
+    output_target << "    .courier_green {" << endl;
+    output_target << "        color: #008000;" << endl;
+    output_target << "    }   " << endl;
+    output_target << "</style>" << endl;
+    output_target << "<style type=\"text/css\">" << endl;
+    output_target << "    .courier_red {" << endl;
+    output_target << "        color: #FF0000;" << endl;
+    output_target << "    }   " << endl;
+    output_target << "</style>" << endl;
+    output_target << "" << endl;
+    output_target << "</head><body>" << endl;
+    output_target << "<h1>" << max_set_value << " choose " << subset_size << "</h1>" << endl;
+    output_target << "<hr width=\"100%%\">" << endl;
+    output_target << "" << endl;
+    output_target << "<br>" << endl;
+    output_target << "<tt>" << endl;
 #endif
 
     if (!started_from_checkpoint) {
 #ifndef HTML_OUTPUT
-        fprintf(output_target, "max_set_value: %lu, subset_size: %lu\n", max_set_value, subset_size);
+        output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << endl;
 #else
-        fprintf(output_target, "max_set_value: %lu, subset_size: %lu<br>\n", max_set_value, subset_size);
+        output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << "<br>" << endl;
 #endif
         if (max_set_value < subset_size) {
-            fprintf(stderr, "Error max_set_value < subset_size. Quitting.\n");
+            cerr << "Error max_set_value < subset_size. Quitting." << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
             exit(1);
         }
     } else {
-        fprintf(stderr, "Starting from checkpoint on iteration %llu, with %llu pass, %llu fail.\n", iteration, pass, fail);
+        cerr << "Starting from checkpoint on iteration " << iteration << ", with " << pass << " pass, " << fail << " fail." << endl;
     }
 
     //timestamp flag
@@ -425,7 +424,7 @@ int main(int argc, char** argv) {
     time_t start_time;
     time( &start_time );
     if (!started_from_checkpoint) {
-        fprintf(output_target, "start time: %s", ctime(&start_time) );
+        output_target << "start time: " << ctime(&start_time) << endl;
     }
 #endif
 
@@ -459,10 +458,10 @@ int main(int argc, char** argv) {
 
 //    this caused a problem:
 //    
-//    fprintf(output_target, "%15u ", 296010);
+//    output_target << "%15u ", 296010);
 //    generate_ith_subset(296010, subset, subset_size, max_set_value);
 //    print_subset(subset, subset_size);
-//    fprintf(output_target, "\n");
+//    output_target << "\n");
 
     uint64_t expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
 
@@ -471,31 +470,31 @@ int main(int argc, char** argv) {
 #endif
 
 //    for (uint64_t i = 0; i < expected_total; i++) {
-//        fprintf(output_target, "%15llu ", i);
+//        output_target << "%15llu ", i);
 //        generate_ith_subset(i, subset, subset_size, max_set_value);
 //        print_subset(subset, subset_size);
-//        fprintf(output_target, "\n");
+//        output_target << "\n");
 //    }
 
 
 #ifndef HTML_OUTPUT
     if (doing_slice) {
-        fprintf(output_target, "performing %llu set evaluations.\n", subsets_to_calculate);
+        output_target << "performing " << subsets_to_calculate << " set evaluations." << endl;
     } else {
-        fprintf(output_target, "performing %llu set evaluations.\n", expected_total);
+        output_target << "performing " << expected_total << " set evaluations." << endl;
     }
 #else
     if (doing_slice) {
-        fprintf(output_target, "performing %llu set evaluations.<br>\n", subsets_to_calculate);
+        output_target << "performing " << subsets_to_calculate << " set evaluations.<br>" << endl;
     } else {
-        fprintf(output_target, "performing %llu set evaluations.<br>\n", expected_total);
+        output_target << "performing " << expected_total << " set evaluations.<br>" << endl;
     }
 #endif
 
     if (started_from_checkpoint) {
         if (iteration >= expected_total) {
-            fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
-            fprintf(stderr, "quitting.\n");
+            cerr << "starting subset [" << starting_subset << "] > total subsets [" << expected_total << "]" << endl;
+            cerr << "quitting." << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
@@ -504,8 +503,8 @@ int main(int argc, char** argv) {
         generate_ith_subset(iteration, subset, subset_size, max_set_value);
     } else if (doing_slice) {
         if (starting_subset >= expected_total) {
-            fprintf(stderr, "starting subset [%llu] > total subsets [%llu]\n", starting_subset, expected_total);
-            fprintf(stderr, "quitting.\n");
+            cerr << "starting subset [" << starting_subset << "] > total subsets [" << expected_total << "]" << endl;
+            cerr << "quitting." << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
@@ -559,8 +558,9 @@ int main(int argc, char** argv) {
 #endif
 //            printf("\r%lf", progress);
 //
-            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
-//                fprintf(stderr, "\n*****Checkpointing! *****\n");
+            if (!success || (iteration % 6000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
+                cerr << "\n*****Checkpointing! *****" << endl;
+                cerr << "CHECKSUM: " << checksum << endl;
                 write_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #ifdef _BOINC_
                 boinc_checkpoint_completed();
@@ -571,13 +571,13 @@ int main(int argc, char** argv) {
     }
 
 #ifdef _BOINC_
-    fprintf(output_target ,"<checksum>%u</checksum>\n", checksum);
-    fprintf(output_target, "<uint32_max>%u</uint32_max>\n", UINT32_MAX);
-    fprintf(output_target, "<failed_subsets>\n");
+    output_target << "<checksum>" << checksum << "</checksum>" << endl;
+    output_target << "<uint32_max>" << UINT32_MAX << "</uint32_max>" << endl;
+    output_target << "<failed_subsets>";
 
-    fprintf(stderr,"<checksum>%u</checksum>\n", checksum);
-    fprintf(stderr, "<uint32_max>%u</uint32_max>\n", UINT32_MAX);
-    fprintf(stderr, "<failed_subsets>\n");
+    cerr << "<checksum>" << checksum << "</checksum>" << endl;
+    cerr << "<uint32_max>" << UINT32_MAX << "</uint32_max>" << endl;
+    cerr << "<failed_subsets>";
 #endif
 
 #ifdef VERBOSE
@@ -585,8 +585,8 @@ int main(int argc, char** argv) {
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
 #ifdef _BOINC_
-        fprintf(stderr, " %llu", failed_sets->at(i));
-        fprintf(output_target, " %llu", failed_sets->at(i));
+        output_target << " " << failed_sets->at(i);
+        cerr << " " << failed_sets->at(i);
 #else
         print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
 #endif
@@ -595,10 +595,11 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef _BOINC_
-    fprintf(stderr, "\n</failed_subsets>\n");
-    fprintf(stderr, "<extra_info>\n");
-    fprintf(output_target, "\n</failed_subsets>\n");
-    fprintf(output_target, "<extra_info>\n");
+    output_target << "</failed_subsets>" << endl;
+    output_target << "<extra_info>" << endl;
+
+    cerr << "</failed_subsets>" << endl;
+    cerr << "<extra_info>" << endl;
 #endif
 
     /**
@@ -607,30 +608,30 @@ int main(int argc, char** argv) {
 
 #ifndef HTML_OUTPUT
     if (doing_slice) {
-        fprintf(stderr, "expected to compute %llu sets\n", subsets_to_calculate);
-        fprintf(output_target, "expected to compute %llu sets\n", subsets_to_calculate);
+        cerr << "expected to compute " << subsets_to_calculate << " sets" << endl;
+        output_target << "expected to compute " << subsets_to_calculate << " sets" << endl;
     } else {
-        fprintf(stderr, "the expected total number of sets is: %llu\n", expected_total);
-        fprintf(output_target, "the expected total number of sets is: %llu\n", expected_total);
+        cerr << "the expected total number of sets is: " << expected_total << endl;
+        output_target << "the expected total number of sets is: " <<  expected_total << endl;
     }
-    fprintf(stderr, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
-    fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+    cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
+    output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
 #else
     if (doing_slice) {
-        fprintf(output_target, "expected to compute %u sets<br>\n", subsets_to_calculate);
-        fprintf(stderr, "expected to compute %u sets<br>\n", subsets_to_calculate);
+        cerr << "expected to compute " << subsets_to_calculate << " sets <br>" << endl;
+        output_target << "expected to compute " << subsets_to_calculate << " sets < br>" << endl;
     } else {
-        fprintf(output_target, "the expected total number of sets is: %llu<br>\n", expected_total);
-        fprintf(stderr, "the expected total number of sets is: %llu<br>\n", expected_total);
+        cerr << "the expected total number of sets is: " << expected_total << "<br>" << endl;
+        output_target << "the expected total number of sets is: " <<  expected_total << "<br>" << endl;
     }
-    fprintf(output_target, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.<br>\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
-    fprintf(stderr, "%llu total sets, %llu sets passed, %llu sets failed, %lf success rate.<br>\n", pass + fail, pass, fail, ((double)pass / ((double)pass + (double)fail)));
+    cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate.<br>" << endl;
+    output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate.<br>" << endl;
 #endif
 
 #ifdef _BOINC_
-    fprintf(stderr, "</extra_info>\n");
+    cerr << "</extra_info>" << endl;
     fflush(stderr);
-    fprintf(output_target, "</extra_info>\n");
+    output_target << "</extra_info>" << endl;
     fflush(output_target);
 #endif
 
@@ -641,8 +642,8 @@ int main(int argc, char** argv) {
 #ifdef TIMESTAMP
     time_t end_time;
     time( &end_time );
-    fprintf(output_target, "end time: %s", ctime(&end_time) );
-    fprintf(output_target, "running time: %ld\n", end_time - start_time);
+    output_target << "end time: " << ctime(&end_time) << endl;
+    output_target << "running time: " << end_time - start_time << endl;
 #endif
 
 #ifdef _BOINC_
@@ -650,18 +651,17 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef HTML_OUTPUT
-    fprintf(output_target, "</tt>\n");
-    fprintf(output_target, "<br>\n");
-    fprintf(output_target, "\n");
-    fprintf(output_target, "<hr width=\"100%%\">\n");
-    fprintf(output_target, "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012\n");
-    fprintf(output_target, "</body>\n");
-    fprintf(output_target, "</html>\n");
+    output_target << "</tt>" << endl;
+    output_target << "<br>" << endl << endl;
+    output_target << "<hr width=\"100%%\">" << endl;
+    output_target << "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012" << endl;
+    output_target << "</body>" << endl;
+    output_target << "</html>" << endl;
 
     if (fail > 0) {
-        fprintf(stderr, "[url=http://volunteer.cs.und.edu/subset_sum/download/set_%luc%lu.html]%lu choose %lu[/url] -- %llu failures\n", max_set_value, subset_size, max_set_value, subset_size, fail);
+        cerr << "[url=http://volunteer.cs.und.edu/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- " << fail << " failures" << endl;
     } else {
-        fprintf(stderr, "[url=http://volunteer.cs.und.edu/subset_sum/download/set_%luc%lu.html]%lu choose %lu[/url] -- pass\n", max_set_value, subset_size, max_set_value, subset_size);
+        cerr << "[url=http://volunteer.cs.und.edu/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- pass" << endl;
     }
 #endif
 
