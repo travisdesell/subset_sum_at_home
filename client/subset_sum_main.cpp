@@ -275,13 +275,14 @@ bool read_checkpoint(string sites_filename, uint64_t &iteration, uint64_t &pass,
     return true;
 }
 
-uint64_t parse_uint64_t(const char* arg) {
+template <class T>
+T parse_t(const char* arg) {
     string n(arg);
-    uint64_t result = 0;
-    uint64_t place = 1;
+    T result = 0;
+    T place = 1;
     uint16_t val = 0;
 
-    for (int i = n.size() - 1; i >= 0; i--) {
+    for (int i = (int)n.size() - 1; i >= 0; i--) {
 //        cerr << "char[%d]: '%c'\n", i, n[i]);
         if      (n[i] == '0') val = 0;
         else if (n[i] == '1') val = 1;
@@ -294,7 +295,7 @@ uint64_t parse_uint64_t(const char* arg) {
         else if (n[i] == '8') val = 8;
         else if (n[i] == '9') val = 9;
         else {
-            cerr << "ERROR in parse_uint64_t, unrecognized character in string: '" <<  n[i] << "'" << endl;
+            cerr << "ERROR in parse_uint64_t, unrecognized character in string: '" <<  n[i] << "', from argument '" << arg << "', string: '" << n << "', position: " << i << endl;
 #ifdef _BOINC_
             boinc_finish(1);
 #endif
@@ -339,12 +340,12 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    unsigned long max_set_value = parse_uint64_t(argv[1]);
+    uint32_t max_set_value = parse_t<uint32_t>(argv[1]);
 #ifdef HTML_OUTPUT
     max_set_digits = ceil(log10(max_set_value)) + 1;
 #endif
 
-    unsigned long subset_size = parse_uint64_t(argv[2]);
+    uint32_t subset_size = parse_t<uint32_t>(argv[2]);
 
     uint64_t iteration = 0;
     uint64_t pass = 0;
@@ -356,12 +357,16 @@ int main(int argc, char** argv) {
 
     if (argc == 5) {
         doing_slice = true;
-        starting_subset = parse_uint64_t(argv[3]);
-        subsets_to_calculate = parse_uint64_t(argv[4]);
+        starting_subset = parse_t<uint64_t>(argv[3]);
+        subsets_to_calculate = parse_t<uint64_t>(argv[4]);
+        cerr << "argv[1]:       " << argv[1]       << ", argv[2]:     " << argv[2]     << ", argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
+	} else {
+		subsets_to_calculate = n_choose_k(max_set_value - 1, subset_size - 1);
+        cerr << "argv[1]:       " << argv[1]       << ", argv[2]:     " << argv[2]     << endl;
+	}
 
-        cerr << "argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
-        cerr << "starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
-    }
+    cerr << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << ", starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
+
 
 #ifdef ENABLE_CHECKPOINTING
     bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
@@ -376,7 +381,7 @@ int main(int argc, char** argv) {
         cerr << "APP: error opening output file for failed sets." << endl;
         boinc_finish(1);
         exit(1);
-    }   
+    }
 
     if (started_from_checkpoint) {
         output_target.rdbuf( ofstream(output_path.c_str(), ios::out | ios::app).rdbuf() );

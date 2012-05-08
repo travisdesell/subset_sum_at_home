@@ -5,7 +5,11 @@
 #include <iostream>
 #include <fstream>
 
+#ifdef _BOINC_
 extern std::ostream output_target;
+#else
+extern std::ostream output_target;
+#endif
 
 void print_bits(const uint32_t number);
 void print_bit_array(const uint32_t *bit_array, const uint32_t bit_array_length);

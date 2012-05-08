@@ -12,7 +12,11 @@
 
 using namespace std;
 
+//#ifdef _BOINC_
+//ostream output_target;
+//#else
 ostream output_target( cout.rdbuf() );
+//#endif
 
 /**
  *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
