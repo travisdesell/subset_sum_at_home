@@ -72,25 +72,25 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
         new_sums[i] = 0;
     }
 
-//    output_target << "\n");
+//    *output_target << "\n");
     uint32_t current;
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-//        output_target << "new_sums = sums << %2u    = ", current);
+//        *output_target << "new_sums = sums << %2u    = ", current);
 //        print_bit_array(new_sums, sums_length);
-//        output_target << "\n");
+//        *output_target << "\n");
 
         or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
-//        output_target << "sums |= new_sums         = ");
+//        *output_target << "sums |= new_sums         = ");
 //        print_bit_array(sums, sums_length);
-//        output_target << "\n");
+//        *output_target << "\n");
 
         or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
-//        output_target << "sums != 1 << current - 1 = ");
+//        *output_target << "sums != 1 << current - 1 = ");
 //        print_bit_array(sums, sums_length);
-//        output_target << "\n");
+//        *output_target << "\n");
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
@@ -138,17 +138,17 @@ static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, 
     uint32_t current = subset_size - 2;
     subset[current]++;
 
-//    output_target << "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
+//    *output_target << "subset_size: %u, max_set_value: %u\n", subset_size, max_set_value);
 
 //    print_subset(subset, subset_size);
-//    output_target << "\n");
+//    *output_target << "\n");
 
     while (current > 0 && subset[current] > (max_set_value - (subset_size - (current + 1)))) {
         subset[current - 1]++;
         current--;
 
 //        print_subset(subset, subset_size);
-//        output_target << "\n");
+//        *output_target << "\n");
     }
 
     while (current < subset_size - 2) {
@@ -156,13 +156,13 @@ static inline void generate_next_subset(uint32_t *subset, uint32_t subset_size, 
         current++;
 
 //        print_subset(subset, subset_size);
-//        output_target << "\n");
+//        *output_target << "\n");
     }
 
     subset[subset_size - 1] = max_set_value;
 
 //    print_subset(subset, subset_size);
-//    output_target << "\n");
+//    *output_target << "\n");
 }
 
 void write_checkpoint(string filename, const uint64_t iteration, const uint64_t pass, const uint64_t fail, const vector<uint64_t> *failed_sets, const uint32_t checksum) {
@@ -374,6 +374,8 @@ int main(int argc, char** argv) {
     bool started_from_checkpoint = false;
 #endif
 
+    ofstream *output_target;
+
 #ifdef _BOINC_
     string output_path;
     retval = boinc_resolve_filename_s(output_filename.c_str(), output_path);
@@ -384,46 +386,46 @@ int main(int argc, char** argv) {
     }
 
     if (started_from_checkpoint) {
-        output_target.rdbuf( ofstream(output_path.c_str(), ios::out | ios::app).rdbuf() );
+        output_target = new ofstream(output_path.c_str(), ios::out | ios::app);
     } else {
-        output_target.rdbuf( ofstream(output_path.c_str(), ios::out).rdbuf() );
+        output_target = new ofstream(output_path.c_str(), ios::out);
     }
 #endif
 
 #ifdef HTML_OUTPUT
-    output_target << "<!DOCTYPE html PUBLIC \"-//w3c//dtd html 4.0 transitional//en\">" << endl;
-    output_target << "<html>" << endl;
-    output_target << "<head>" << endl;
-    output_target << "  <meta http-equiv=\"Content-Type\"" << endl;
-    output_target << " content=\"text/html; charset=iso-8859-1\">" << endl;
-    output_target << "  <meta name=\"GENERATOR\"" << endl;
-    output_target << " content=\"Mozilla/4.76 [en] (X11; U; Linux 2.4.2-2 i686) [Netscape]\">" << endl;
-    output_target << "  <title>" << max_set_value << " choose " << subset_size << "</title>" << endl;
-    output_target << "" << endl;
-    output_target << "<style type=\"text/css\">" << endl;
-    output_target << "    .courier_green {" << endl;
-    output_target << "        color: #008000;" << endl;
-    output_target << "    }   " << endl;
-    output_target << "</style>" << endl;
-    output_target << "<style type=\"text/css\">" << endl;
-    output_target << "    .courier_red {" << endl;
-    output_target << "        color: #FF0000;" << endl;
-    output_target << "    }   " << endl;
-    output_target << "</style>" << endl;
-    output_target << "" << endl;
-    output_target << "</head><body>" << endl;
-    output_target << "<h1>" << max_set_value << " choose " << subset_size << "</h1>" << endl;
-    output_target << "<hr width=\"100%%\">" << endl;
-    output_target << "" << endl;
-    output_target << "<br>" << endl;
-    output_target << "<tt>" << endl;
+    *output_target << "<!DOCTYPE html PUBLIC \"-//w3c//dtd html 4.0 transitional//en\">" << endl;
+    *output_target << "<html>" << endl;
+    *output_target << "<head>" << endl;
+    *output_target << "  <meta http-equiv=\"Content-Type\"" << endl;
+    *output_target << " content=\"text/html; charset=iso-8859-1\">" << endl;
+    *output_target << "  <meta name=\"GENERATOR\"" << endl;
+    *output_target << " content=\"Mozilla/4.76 [en] (X11; U; Linux 2.4.2-2 i686) [Netscape]\">" << endl;
+    *output_target << "  <title>" << max_set_value << " choose " << subset_size << "</title>" << endl;
+    *output_target << "" << endl;
+    *output_target << "<style type=\"text/css\">" << endl;
+    *output_target << "    .courier_green {" << endl;
+    *output_target << "        color: #008000;" << endl;
+    *output_target << "    }   " << endl;
+    *output_target << "</style>" << endl;
+    *output_target << "<style type=\"text/css\">" << endl;
+    *output_target << "    .courier_red {" << endl;
+    *output_target << "        color: #FF0000;" << endl;
+    *output_target << "    }   " << endl;
+    *output_target << "</style>" << endl;
+    *output_target << "" << endl;
+    *output_target << "</head><body>" << endl;
+    *output_target << "<h1>" << max_set_value << " choose " << subset_size << "</h1>" << endl;
+    *output_target << "<hr width=\"100%%\">" << endl;
+    *output_target << "" << endl;
+    *output_target << "<br>" << endl;
+    *output_target << "<tt>" << endl;
 #endif
 
     if (!started_from_checkpoint) {
 #ifndef HTML_OUTPUT
-        output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << endl;
+        *output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << endl;
 #else
-        output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << "<br>" << endl;
+        *output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << "<br>" << endl;
 #endif
         if (max_set_value < subset_size) {
             cerr << "Error max_set_value < subset_size. Quitting." << endl;
@@ -441,7 +443,7 @@ int main(int argc, char** argv) {
     time_t start_time;
     time( &start_time );
     if (!started_from_checkpoint) {
-        output_target << "start time: " << ctime(&start_time) << endl;
+        *output_target << "start time: " << ctime(&start_time) << endl;
     }
 #endif
 
@@ -462,10 +464,10 @@ int main(int argc, char** argv) {
 
 //    this caused a problem:
 //    
-//    output_target << "%15u ", 296010);
+//    *output_target << "%15u ", 296010);
 //    generate_ith_subset(296010, subset, subset_size, max_set_value);
 //    print_subset(subset, subset_size);
-//    output_target << "\n");
+//    *output_target << "\n");
 
     uint64_t expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
 
@@ -474,22 +476,21 @@ int main(int argc, char** argv) {
 #endif
 
 //    for (uint64_t i = 0; i < expected_total; i++) {
-//        output_target << "%15llu ", i);
+//        *output_target << "%15llu ", i);
 //        generate_ith_subset(i, subset, subset_size, max_set_value);
 //        print_subset(subset, subset_size);
-//        output_target << "\n");
+//        *output_target << "\n");
 //    }
 
-
     if (doing_slice) {
-        output_target << "performing " << subsets_to_calculate << " set evaluations.";
+        *output_target << "performing " << subsets_to_calculate << " set evaluations.";
     } else {
-        output_target << "performing " << expected_total << " set evaluations.";
+        *output_target << "performing " << expected_total << " set evaluations.";
     }
 #ifndef HTML_OUTPUT
-    output_target << "<br>";
+    *output_target << "<br>";
 #endif
-    output_target << endl;
+    *output_target << endl;
 
 
     if (starting_subset + iteration > expected_total) {
@@ -583,9 +584,9 @@ int main(int argc, char** argv) {
     }
 
 #ifdef _BOINC_
-    output_target << "<checksum>" << checksum << "</checksum>" << endl;
-    output_target << "<uint32_max>" << UINT32_MAX << "</uint32_max>" << endl;
-    output_target << "<failed_subsets>";
+    *output_target << "<checksum>" << checksum << "</checksum>" << endl;
+    *output_target << "<uint32_max>" << UINT32_MAX << "</uint32_max>" << endl;
+    *output_target << "<failed_subsets>";
 
     cerr << "<checksum>" << checksum << "</checksum>" << endl;
     cerr << "<uint32_max>" << UINT32_MAX << "</uint32_max>" << endl;
@@ -597,7 +598,7 @@ int main(int argc, char** argv) {
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
 #ifdef _BOINC_
-        output_target << " " << failed_sets->at(i);
+        *output_target << " " << failed_sets->at(i);
         cerr << " " << failed_sets->at(i);
 #else
         print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
@@ -607,8 +608,8 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef _BOINC_
-    output_target << "</failed_subsets>" << endl;
-    output_target << "<extra_info>" << endl;
+    *output_target << "</failed_subsets>" << endl;
+    *output_target << "<extra_info>" << endl;
 
     cerr << "</failed_subsets>" << endl;
     cerr << "<extra_info>" << endl;
@@ -621,31 +622,32 @@ int main(int argc, char** argv) {
 #ifndef HTML_OUTPUT
     if (doing_slice) {
         cerr << "expected to compute " << subsets_to_calculate << " sets" << endl;
-        output_target << "expected to compute " << subsets_to_calculate << " sets" << endl;
+        *output_target << "expected to compute " << subsets_to_calculate << " sets" << endl;
     } else {
         cerr << "the expected total number of sets is: " << expected_total << endl;
-        output_target << "the expected total number of sets is: " <<  expected_total << endl;
+        *output_target << "the expected total number of sets is: " <<  expected_total << endl;
     }
     cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
-    output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
+    *output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
 #else
     if (doing_slice) {
         cerr << "expected to compute " << subsets_to_calculate << " sets <br>" << endl;
-        output_target << "expected to compute " << subsets_to_calculate << " sets < br>" << endl;
+        *output_target << "expected to compute " << subsets_to_calculate << " sets < br>" << endl;
     } else {
         cerr << "the expected total number of sets is: " << expected_total << "<br>" << endl;
-        output_target << "the expected total number of sets is: " <<  expected_total << "<br>" << endl;
+        *output_target << "the expected total number of sets is: " <<  expected_total << "<br>" << endl;
     }
     cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate.<br>" << endl;
-    output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate.<br>" << endl;
+    *output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate.<br>" << endl;
 #endif
 
 #ifdef _BOINC_
     cerr << "</extra_info>" << endl;
     cerr.flush();
 
-    output_target << "</extra_info>" << endl;
-    output_target.flush();
+    *output_target << "</extra_info>" << endl;
+    output_target->flush();
+    output_target->close();
 #endif
 
     delete [] subset;
@@ -655,8 +657,8 @@ int main(int argc, char** argv) {
 #ifdef TIMESTAMP
     time_t end_time;
     time( &end_time );
-    output_target << "end time: " << ctime(&end_time) << endl;
-    output_target << "running time: " << end_time - start_time << endl;
+    *output_target << "end time: " << ctime(&end_time) << endl;
+    *output_target << "running time: " << end_time - start_time << endl;
 #endif
 
 #ifdef _BOINC_
@@ -664,12 +666,12 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef HTML_OUTPUT
-    output_target << "</tt>" << endl;
-    output_target << "<br>" << endl << endl;
-    output_target << "<hr width=\"100%%\">" << endl;
-    output_target << "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012" << endl;
-    output_target << "</body>" << endl;
-    output_target << "</html>" << endl;
+    *output_target << "</tt>" << endl;
+    *output_target << "<br>" << endl << endl;
+    *output_target << "<hr width=\"100%%\">" << endl;
+    *output_target << "Copyright &copy; Travis Desell, Tom O'Neil and the University of North Dakota, 2012" << endl;
+    *output_target << "</body>" << endl;
+    *output_target << "</html>" << endl;
 
     if (fail > 0) {
         cerr << "[url=http://volunteer.cs.und.edu/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- " << fail << " failures" << endl;

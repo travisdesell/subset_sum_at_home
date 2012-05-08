@@ -8,24 +8,17 @@
 #include "output.hpp"
 #include "../client/bit_logic.hpp"
 
-//ALL THESE GLOBALS SHOULD PROBABLY BE IN THEIR OWN HEADER FILE
 
 using namespace std;
-
-//#ifdef _BOINC_
-//ostream output_target;
-//#else
-ostream output_target( cout.rdbuf() );
-//#endif
 
 /**
  *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
  */
-void print_bits(const uint32_t number) {
+void print_bits(ofstream *output_target, const uint32_t number) {
     uint32_t pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
-        if (number & pos) output_target << "1";
-        else output_target << "0";
+        if (number & pos) *output_target << "1";
+        else *output_target << "0";
         pos >>= 1;
     }
 }
@@ -33,37 +26,37 @@ void print_bits(const uint32_t number) {
 /**
  * Print out an array of bits
  */
-void print_bit_array(const uint32_t *bit_array, const uint32_t bit_array_length) {
+void print_bit_array(ofstream *output_target, const uint32_t *bit_array, const uint32_t bit_array_length) {
     for (uint32_t i = 0; i < bit_array_length; i++) {
-        print_bits(bit_array[i]);
+        print_bits(output_target, bit_array[i]);
     }
 }
 
 /**
  *  Print out all the elements in a subset
  */
-void print_subset(const uint32_t *subset, const uint32_t subset_size) {
-    output_target << "[";
+void print_subset(ofstream *output_target, const uint32_t *subset, const uint32_t subset_size) {
+    *output_target << "[";
 #ifndef HTML_OUTPUT
     for (uint32_t i = 0; i < subset_size; i++) {
-        output_target << setw(4) << subset[i];
+        *output_target << setw(4) << subset[i];
     }
 #else
     for (uint32_t i = 0; i < subset_size; i++) {
         double whitespaces = (max_set_digits - floor(log10(subset[i]))) - 1;
 
-        for (int j = 0; j < whitespaces; j++) output_target << "&nbsp;";
+        for (int j = 0; j < whitespaces; j++) *output_target << "&nbsp;";
 
-        output_target << setw(4) << subset[i];
+        *output_target << setw(4) << subset[i];
     }
 #endif
-    output_target << "]";
+    *output_target << "]";
 }
 
 /**
  * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
  */
-void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max) {
+void print_bit_array_color(ofstream *output_target, const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max) {
     uint32_t msl = max_sums_length * ELEMENT_SIZE;
     uint32_t number, pos;
     uint32_t count = 0;
@@ -82,30 +75,30 @@ void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums
             if ((msl - min) == count) {
                 red_on = true;
 #ifndef HTML_OUTPUT
-                output_target << "\e[32m";
+                *output_target << "\e[32m";
 #else
-                output_target << "<b><span class=\"courier_green\">";
+                *output_target << "<b><span class=\"courier_green\">";
 #endif
             }
 
-            if (number & pos) output_target << "1";
+            if (number & pos) *output_target << "1";
             else {
                 if (red_on) {
 #ifndef HTML_OUTPUT
-                    output_target << "\e[31m0\e[32m";
+                    *output_target << "\e[31m0\e[32m";
 #else
-                    output_target << "<span class=\"courier_red\">0</span>";
+                    *output_target << "<span class=\"courier_red\">0</span>";
 #endif
                 } else {
-                    output_target << "0";
+                    *output_target << "0";
                 }
             }
 
             if ((msl - max) == count) {
 #ifndef HTML_OUTPUT
-                output_target << "\e[0m";
+                *output_target << "\e[0m";
 #else
-                output_target << "</span></b>";
+                *output_target << "</span></b>";
 #endif
                 red_on = false;
             }
@@ -116,7 +109,7 @@ void print_bit_array_color(const uint32_t *bit_array, unsigned long int max_sums
     }
 }
 
-void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
+void print_subset_calculation(ofstream *output_target, const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
 
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;
@@ -135,7 +128,7 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
 
     uint32_t current;
 #ifdef SHOW_SUM_CALCULATION
-    output_target << "\n";
+    *output_target << "\n";
 #endif
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
@@ -152,9 +145,9 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
 
         or_single(sums, max_sums_length, current - 1);                           //sums |= 1 << (current - 1);
 #ifdef SHOW_SUM_CALCULATION
-        output_target << "sums != 1 << current - 1                                       = ";
+        *output_target << "sums != 1 << current - 1                                       = ";
         print_bit_array(sums, max_sums_length);
-        output_target << "\n";
+        *output_target << "\n";
 #endif
     }
 
@@ -166,40 +159,40 @@ void print_subset_calculation(const uint64_t iteration, uint32_t *subset, const 
         whitespaces = (max_digits - floor(log10(iteration))) - 1;
     }
 
-    for (int i = 0; i < whitespaces; i++) output_target << "&nbsp;";
+    for (int i = 0; i < whitespaces; i++) *output_target << "&nbsp;";
 #endif
 
 #ifndef HTML_OUTPUT
-    output_target << setw(15) << iteration;
+    *output_target << setw(15) << iteration;
 #else
-    output_target << setw(15) << iteration;
+    *output_target << setw(15) << iteration;
 #endif
-    print_subset(subset, subset_size);
-    output_target << " = ";
+    print_subset(output_target, subset, subset_size);
+    *output_target << " = ";
 
     uint32_t min = max_subset_sum - M;
     uint32_t max = M;
 #ifdef ENABLE_COLOR
-    print_bit_array_color(sums, max_sums_length, min, max);
+    print_bit_array_color(output_target, sums, max_sums_length, min, max);
 #else 
-    print_bit_array(sums, max_sums_length);
+    print_bit_array(output_target, sums, max_sums_length);
 #endif
 
-    output_target << "  match " << setw(4) << min << " to " << setw(4) << max;
+    *output_target << "  match " << setw(4) << min << " to " << setw(4) << max;
 #ifndef HTML_OUTPUT
 #ifdef ENABLE_COLOR
-    if (success)    output_target << " = \e[32mpass\e[0m" << endl;
-    else            output_target << " = \e[31mfail\e[0m" << endl;
+    if (success)    *output_target << " = \e[32mpass\e[0m" << endl;
+    else            *output_target << " = \e[31mfail\e[0m" << endl;
 #else
-    if (success)    output_target << " = pass" << endl;
-    else            output_target << " = fail" << endl;
+    if (success)    *output_target << " = pass" << endl;
+    else            *output_target << " = fail" << endl;
 #endif
 #else
-    if (success)    output_target << " = <span class=\"courier_green\">pass</span><br>" << endl;
-    else            output_target << " = <span class=\"courier_red\">fail</span><br>" << endl;
+    if (success)    *output_target << " = <span class=\"courier_green\">pass</span><br>" << endl;
+    else            *output_target << " = <span class=\"courier_red\">fail</span><br>" << endl;
 #endif
 
-    output_target.flush();
+    output_target->flush();
 }
 
 
