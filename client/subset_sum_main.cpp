@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <iomanip>
 
 #include "stdint.h"
 
@@ -59,7 +60,7 @@ uint32_t *new_sums;             //extern
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
-static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size, const uint64_t iteration, bool doing_slice) {
+static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;
@@ -349,6 +350,19 @@ int main(int argc, char** argv) {
     uint64_t pass = 0;
     uint64_t fail = 0;
 
+    bool doing_slice = false;
+    uint64_t starting_subset = 0;
+    uint64_t subsets_to_calculate = 0;
+
+    if (argc == 5) {
+        doing_slice = true;
+        starting_subset = parse_uint64_t(argv[3]);
+        subsets_to_calculate = parse_uint64_t(argv[4]);
+
+        cerr << "argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
+        cerr << "starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
+    }
+
 #ifdef ENABLE_CHECKPOINTING
     bool started_from_checkpoint = read_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #else
@@ -360,16 +374,14 @@ int main(int argc, char** argv) {
     retval = boinc_resolve_filename_s(output_filename.c_str(), output_path);
     if (retval) {
         cerr << "APP: error opening output file for failed sets." << endl;
-#ifdef _BOINC_
         boinc_finish(1);
-#endif
         exit(1);
     }   
 
     if (started_from_checkpoint) {
-        output_target = ofstream(output_path.c_str(), "a");
+        output_target.rdbuf( ofstream(output_path.c_str(), ios::out | ios::app).rdbuf() );
     } else {
-        output_target = ofstream(output_path.c_str(), "w");
+        output_target.rdbuf( ofstream(output_path.c_str(), ios::out).rdbuf() );
     }
 #endif
 
@@ -428,19 +440,6 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    bool doing_slice = false;
-    uint64_t starting_subset = 0;
-    uint64_t subsets_to_calculate = 0;
-
-    if (argc == 5) {
-        doing_slice = true;
-        starting_subset = parse_uint64_t(argv[3]);
-        subsets_to_calculate = parse_uint64_t(argv[4]);
-
-        cerr << "argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
-        cerr << "starting_subset: " << starting_subset << ", subsets_to_calculate: " << subsets_to_calculate << endl;
-    }
-
     /**
      *  Calculate the maximum set length (in bits) so we can use this for printing out the values cleanly.
      */
@@ -477,40 +476,39 @@ int main(int argc, char** argv) {
 //    }
 
 
+    if (doing_slice) {
+        output_target << "performing " << subsets_to_calculate << " set evaluations.";
+    } else {
+        output_target << "performing " << expected_total << " set evaluations.";
+    }
 #ifndef HTML_OUTPUT
-    if (doing_slice) {
-        output_target << "performing " << subsets_to_calculate << " set evaluations." << endl;
-    } else {
-        output_target << "performing " << expected_total << " set evaluations." << endl;
-    }
-#else
-    if (doing_slice) {
-        output_target << "performing " << subsets_to_calculate << " set evaluations.<br>" << endl;
-    } else {
-        output_target << "performing " << expected_total << " set evaluations.<br>" << endl;
-    }
+    output_target << "<br>";
 #endif
+    output_target << endl;
 
-    if (started_from_checkpoint) {
-        if (iteration >= expected_total) {
-            cerr << "starting subset [" << starting_subset << "] > total subsets [" << expected_total << "]" << endl;
-            cerr << "quitting." << endl;
+
+    if (starting_subset + iteration > expected_total) {
+        cerr << "starting subset [" << starting_subset + iteration << "] > total subsets [" << expected_total << "]" << endl;
+        cerr << "quitting." << endl;
 #ifdef _BOINC_
-            boinc_finish(1);
+        boinc_finish(1);
 #endif
-            exit(1);
-        }
-        generate_ith_subset(iteration, subset, subset_size, max_set_value);
-    } else if (doing_slice) {
-        if (starting_subset >= expected_total) {
-            cerr << "starting subset [" << starting_subset << "] > total subsets [" << expected_total << "]" << endl;
-            cerr << "quitting." << endl;
+        exit(1);
+    }
+
+    if (doing_slice && starting_subset + subsets_to_calculate > expected_total) {
+        cerr << "starting subset [" << starting_subset << "] + subsets to calculate [" << subsets_to_calculate << "] > total subsets [" << expected_total << "]" << endl;
+        cerr << "quitting." << endl;
 #ifdef _BOINC_
-            boinc_finish(1);
+        boinc_finish(1);
 #endif
-            exit(1);
-        }
-        generate_ith_subset(starting_subset, subset, subset_size, max_set_value);
+        exit(1);
+    }
+
+    if (started_from_checkpoint || doing_slice) {
+        cout << "starting subset: " << starting_subset << ", iteration: " << iteration << endl;
+        generate_ith_subset(starting_subset + iteration, subset, subset_size, max_set_value);
+
     } else {
         for (uint32_t i = 0; i < subset_size - 1; i++) subset[i] = i + 1;
         subset[subset_size - 1] = max_set_value;
@@ -522,7 +520,7 @@ int main(int argc, char** argv) {
     bool success;
 
     while (subset[0] <= (max_set_value - subset_size + 1)) {
-        success = test_subset(subset, subset_size, iteration, doing_slice);
+        success = test_subset(subset, subset_size);
 
         if (success) {
             pass++;
@@ -538,7 +536,7 @@ int main(int argc, char** argv) {
 
 #ifdef VERBOSE
 #ifndef FALSE_ONLY
-        print_subset_calculation(iteration, subset, subset_size, success);
+        print_subset_calculation(starting_subset + iteration, subset, subset_size, success);
 #endif
 #endif
 
@@ -558,9 +556,19 @@ int main(int argc, char** argv) {
 #endif
 //            printf("\r%lf", progress);
 //
-            if (!success || (iteration % 6000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
-                cerr << "\n*****Checkpointing! *****" << endl;
-                cerr << "CHECKSUM: " << checksum << endl;
+            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
+//                cerr << "\n*****Checkpointing! *****" << endl;
+//                cerr << "CHECKSUM: " << checksum << endl;
+
+//                cout << "[";
+//                for (uint32_t i = 0; i < subset_size; i++) {
+//                    cout << setw(4) << subset[i];
+//                }
+//                cout << "]";
+
+//                if (!success) cout << " fail: " << fail << ", failed_subsets.size(): " << failed_sets->size() << "\n";
+//                else cout << endl;
+
                 write_checkpoint(checkpoint_file, iteration, pass, fail, failed_sets, checksum);
 #ifdef _BOINC_
                 boinc_checkpoint_completed();
@@ -630,9 +638,10 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     cerr << "</extra_info>" << endl;
-    fflush(stderr);
+    cerr.flush();
+
     output_target << "</extra_info>" << endl;
-    fflush(output_target);
+    output_target.flush();
 #endif
 
     delete [] subset;
