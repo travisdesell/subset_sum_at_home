@@ -506,7 +506,6 @@ int main(int argc, char** argv) {
     }
 
     if (started_from_checkpoint || doing_slice) {
-        cout << "starting subset: " << starting_subset << ", iteration: " << iteration << endl;
         generate_ith_subset(starting_subset + iteration, subset, subset_size, max_set_value);
 
     } else {
