@@ -79,4 +79,32 @@ T parse_xml(string xml, string tag, T (*convert)(const char*) ) throw (string) {
     }
 }
 
+template <>
+string parse_xml<string>(string xml, string tag, string (*convert)(const char*) ) throw (string) {
+    string start_tag("<");
+    start_tag.append(tag);
+    start_tag.append(">");
+
+    string end_tag("</");
+    end_tag.append(tag);
+    end_tag.append(">");
+
+    int start = xml.find(start_tag, 0) + start_tag.size();
+    int end = xml.find(end_tag, 0);
+    int length = end - start;
+
+    if (length > 0) {
+//        cout << "parsing: " << tag << " from '" << xml.substr(start, length) << "'" << endl;
+
+        return convert( xml.substr(start, length).c_str() );
+    } else if (length == 0) {
+        return string();
+    } else {
+        ostringstream oss;
+        oss << "Tag '" << tag << "' was not found, find(" << start_tag << ") returned " << start << ", find(" << end_tag << ") returned " << end << ", error in file [" << __FILE__ << "] on line [" << __LINE__ << "]" << endl;
+        throw oss.str();
+    }
+}
+
+
 #endif

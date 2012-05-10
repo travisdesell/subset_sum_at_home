@@ -89,17 +89,10 @@ int get_data_from_result(uint32_t &uint32_max, uint32_t &checksum, string &faile
 //        log_messages.printf(MSG_DEBUG, "failed_subsets: '%s'\n", failed_sets.c_str());
 
     } catch (string error_message) {
-        //Should eventually be able to remove this after everyone starts using application 0.04
-        try {
-            failed_sets = parse_xml<string>( fc, "tested_subsets", convert_string );
-//            log_messages.printf(MSG_DEBUG, "failed_sets: '%s'\n", failed_sets.c_str());
-
-        } catch (string error_message) {
-            log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
-            result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-            result.validate_state = VALIDATE_STATE_INVALID;
-            throw 0;
-        }
+        log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
+        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
+        result.validate_state = VALIDATE_STATE_INVALID;
+        throw 0;
     }
 
     uint32_t current = 0, target = 0;
@@ -121,6 +114,14 @@ int get_data_from_result(uint32_t &uint32_max, uint32_t &checksum, string &faile
     }
     failed_sets.resize(current);
 
+    cout << "FAILED SETS WAS: '" << failed_sets << "'" << endl;
+
+    while (failed_sets[0] == ' ') failed_sets.erase(0, 1);
+    while (failed_sets[ failed_sets.size() - 1 ] == ' ') failed_sets.erase( failed_sets.size() - 1, 1);
+
+    cout << "FAILED SETS  IS: '" << failed_sets << "'" << endl;
+
+//    exit(1);
 
     return 0;
 }
@@ -235,6 +236,8 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
                 } else {
                     log_messages.printf(MSG_DEBUG, "result[%d]: id (%10d) set to INVALID\n", k, results[k].id);
                     results[k].validate_state = VALIDATE_STATE_INVALID;
+
+                    log_messages.printf(MSG_CRITICAL, "EXITING BEFORE SETTING RESULT TO INVALID\n");
                 }
             }
 
@@ -286,6 +289,8 @@ void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
             log_messages.printf(MSG_CRITICAL, "        new result (failed_sets) DOES NOT MATCH canonical result (failed_sets), but checksums match\n");
             log_messages.printf(MSG_CRITICAL, "new result failed sets: %s\n\n", new_failed_sets.c_str());
             log_messages.printf(MSG_CRITICAL, "canonical result failed sets: %s\n\n", canonical_failed_sets.c_str());
+            log_messages.printf(MSG_CRITICAL, "EXITING BEFORE SETTING RESULT TO INVALID\n");
+            exit(1);
             new_result.validate_state = VALIDATE_STATE_INVALID;
             exit(0);
         }
@@ -293,6 +298,8 @@ void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
         new_result.validate_state = VALIDATE_STATE_INVALID;
         log_messages.printf(MSG_DEBUG, "        new result (checksum: %15u) DOES NOT MATCH canonical result (checksum: %15u)\n", new_checksum, canonical_checksum);
         log_messages.printf(MSG_DEBUG, "        new result (uint32_max: %15u) DOES NOT MATCH canonical result (uint32_max: %15u)\n", new_uint32_max, canonical_uint32_max);
+
+        log_messages.printf(MSG_CRITICAL, "EXITING BEFORE SETTING RESULT TO INVALID\n");
     }
 }
 
