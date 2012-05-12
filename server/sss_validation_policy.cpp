@@ -31,7 +31,7 @@ string get_file_as_string(string file_path) throw (int) {
     ifstream sites_file(file_path.c_str());
 
     if (!sites_file.is_open()) {
-        throw 0;
+        throw 1;
     }
 
     std::string fc;
@@ -67,10 +67,12 @@ int get_data_from_result(uint32_t &uint32_max, uint32_t &checksum, string &faile
     } catch (int err) {
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] get_data_from_result: could not open file for result\n", result.id, result.name);
         log_messages.printf(MSG_CRITICAL, "     file path: %s\n", file_path.c_str());
-        //TODO: retry this result?
-        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
-        result.validate_state = VALIDATE_STATE_INVALID;
-        throw 0;
+        //retry this result?
+        return err;
+//        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
+//        result.validate_state = VALIDATE_STATE_INVALID;
+//        exit(0);
+//        throw 0;
     }
 
 //    cout << fc << endl;
@@ -92,6 +94,7 @@ int get_data_from_result(uint32_t &uint32_max, uint32_t &checksum, string &faile
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
         result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
         result.validate_state = VALIDATE_STATE_INVALID;
+        exit(0);
         throw 0;
     }
 
@@ -148,13 +151,19 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
     vector<uint32_t> uint32_maxes(results.size(), 0);
     vector<string> failed_vector(results.size(), " ");
 
+    retry = false;
+
     for (int i = 0; i < results.size(); i++) {
         uint32_t checksum, uint32_max;
         string failed_sets;
 
         try {
             retval = get_data_from_result(uint32_max, checksum, failed_sets, results[i]);
-            if (retval) return retval;
+            if (retval) {
+                log_messages.printf(MSG_CRITICAL, "result[%2d] - id: %10d, error getting data from result: %d, retrying.\n", i, results[i].id, retval);
+                retry = true;
+                return retval;
+            }
 
         } catch (int err) {
             log_messages.printf(MSG_CRITICAL, "result[%2d] - id: %10d, error from get_data_from_result.\n", i, results[i].id);
@@ -238,6 +247,7 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
                     results[k].validate_state = VALIDATE_STATE_INVALID;
 
                     log_messages.printf(MSG_CRITICAL, "EXITING BEFORE SETTING RESULT TO INVALID\n");
+                    exit(0);
                 }
             }
 
@@ -254,6 +264,8 @@ int check_set(vector<RESULT>& results, WORKUNIT& wu, int& canonicalid, double&, 
 void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
     int retval;
 
+    retry = false;
+
     uint32_t new_checksum, new_uint32_max;
     string new_failed_sets;
 
@@ -262,7 +274,10 @@ void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
 
     try {
         retval = get_data_from_result(new_uint32_max, new_checksum, new_failed_sets, new_result);
-        if (retval) return;
+        if (retval) {
+            retry = true;
+            return;
+        }
 
     } catch (int err) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_pair([RESULT#%d %s]) failed getting checksum and failed sets from new result.\n", new_result.id, new_result.name);
@@ -272,7 +287,10 @@ void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
 
     try {
         retval = get_data_from_result(canonical_uint32_max, canonical_checksum, canonical_failed_sets, canonical_result);
-        if (retval) return;
+        if (retval) {
+            retry = true;
+            return;
+        }
 
     } catch (int err) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy check_pair([RESULT#%d %s]) failed getting checksum and failed sets from canonical result.\n", canonical_result.id, canonical_result.name);
@@ -300,6 +318,7 @@ void check_pair(RESULT& new_result, RESULT& canonical_result, bool& retry) {
         log_messages.printf(MSG_DEBUG, "        new result (uint32_max: %15u) DOES NOT MATCH canonical result (uint32_max: %15u)\n", new_uint32_max, canonical_uint32_max);
 
         log_messages.printf(MSG_CRITICAL, "EXITING BEFORE SETTING RESULT TO INVALID\n");
+        exit(1);
     }
 }
 
