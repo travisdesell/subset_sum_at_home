@@ -25,6 +25,19 @@ VALIDATOR_OBJS = \
 	$(BOINC_DIR)/db/boinc_db.cpp \
 	./sss_validation_policy.cpp
 
+VALIDATOR_NEW_OBJS = \
+    $(BOINC_DIR)/sched/validator.cpp \
+	$(BOINC_DIR)/sched/validate_util.cpp \
+	$(BOINC_DIR)/sched/validate_util2.cpp \
+	$(BOINC_DIR)/sched/credit.cpp \
+	$(BOINC_DIR)/sched/sched_util.cpp \
+	$(BOINC_DIR)/sched/sched_config.cpp \
+	$(BOINC_DIR)/sched/sched_limit.cpp \
+	$(BOINC_DIR)/lib/parse.cpp \
+	$(BOINC_DIR)/db/boinc_db.cpp \
+	./sss_validation_policy_new.cpp
+
+
 START_SEARCH_OBJS = \
     ./start_search.cpp
 
@@ -39,12 +52,15 @@ work_generator_OBJS = \
 	 $(BOINC_DIR)/lib/parse.cpp \
 	 $(BOINC_DIR)/db/boinc_db.cpp 
 
-PROGS = validator assimilator make_work work_generator start_search
+PROGS = validator validator_new assimilator work_generator 
 
-all: assimilator validator make_work work_generator start_search
+all: validator validator_new assimilator work_generator 
 
 assimilator: $(ASSIMILATOR_OBJS)
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(LDFLAGS) -o assimilator $(ASSIMILATOR_OBJS) $(MYSQL) $(LIBS)
+
+validator_new: $(VALIDATOR_NEW_OBJS)
+	$(CXX) $(CXXFLAGS) $(CFLAGS) $(LDFLAGS) -o sss_validator $(VALIDATOR_NEW_OBJS) $(MYSQL) $(LIBS)
 
 validator: $(VALIDATOR_OBJS)
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(LDFLAGS) -o sss_validator $(VALIDATOR_OBJS) $(MYSQL) $(LIBS)
@@ -53,7 +69,7 @@ work_generator: $(ASSIMILATOR_OBJ)
 	$(CXX) $(CXXFLAGS) $(CFLAGS) $(LDFLAGS) -o sss_work_generator $(work_generator_OBJS) $(MYSQL) $(LIBS)
 
 .cpp.o:
-	$(CXX) $(CXXFLAGS) $(CFLAGS) -Wall -x c++ -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CFLAGS) -Wall -Wextra -x c++ -c $< -o $@
 
 .C.o:
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -Wall -x c++ -c $< -o $@
