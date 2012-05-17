@@ -101,17 +101,17 @@ int init_result(RESULT& result, void*& data) {
         return ERR_FOPEN;
     }
 
-    cout << "Parsing: " << endl << fc << endl;
+//    cout << "Parsing: " << endl << fc << endl;
 
     SSS_RESULT* sss_result = new SSS_RESULT;
     try {
         sss_result->checksum = parse_xml<uint32_t>(fc, "checksum");
 
-        cout << "checksum: " << sss_result->checksum << endl;
+//        cout << "checksum: " << sss_result->checksum << endl;
 
         parse_xml_vector<uint64_t>(fc, "failed_subsets", sss_result->failed_sets);
 
-        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
+//        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
     } catch (string error_message) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
 //        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
@@ -153,12 +153,11 @@ int compare_results(
         } else {
             match = false;
             log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
-        exit(0);
+            exit(0);
         }
     } else {
         match = false;
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different checksums %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->checksum, f2->checksum);
-        exit(0);
     }
 
     return 0;
