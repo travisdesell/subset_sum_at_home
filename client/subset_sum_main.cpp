@@ -35,7 +35,7 @@
  */
 
 #include "bit_logic.hpp"
-#include "../common/output.hpp"
+#include "../common/binary_output.hpp"
 #include "../common/n_choose_k.hpp"
 
 using namespace std;

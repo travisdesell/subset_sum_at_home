@@ -5,7 +5,7 @@
 #include <iomanip>
 
 #include "stdint.h"
-#include "output.hpp"
+#include "binary_output.hpp"
 #include "../client/bit_logic.hpp"
 
 
