@@ -1,0 +1,3 @@
+[submodule "undvc_common"]
+	path = undvc_common
+	url = git@github.com:travisdesell/undvc_common.git
