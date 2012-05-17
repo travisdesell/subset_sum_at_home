@@ -34,7 +34,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "../common/util.hpp"
+#include "../undvc_common/parse_xml.hxx"
 
 using std::string;
 using std::vector;
