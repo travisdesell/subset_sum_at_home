@@ -1,4 +1,9 @@
 To compile:
+    After cloning the git repository, be sure to do:
+        git submodule init
+        git submodule update
+    To make sure that you grab all the files in the undvc_common submodule.
+
     Verbose version:
         g++ -Wall -DVERBOSE -O3 -o subset_sum subset_sum_main.cpp
 
