@@ -161,24 +161,6 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
                                                 //this should give a workunit around 30 minutes
 
     uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    /**
-     *  Update create an entry in sss_runs table for this M and N
-     */
-    ostringstream query;
-    query << "INSERT INTO sss_runs SET "
-          << "max_value =  " << max_set_value << ", "
-          << "subset_size = " << set_size << ", "
-          << "slices = " << total_sets << ", "
-          << "completed = 0, errors = 0";
-
-    log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-    mysql_query(boinc_db.mysql, query.str().c_str()); 
-
-    if (mysql_errno(boinc_db.mysql) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
-        exit(1);
-    }
-
     uint64_t current_set = 0;
     uint64_t total_generated = 0;
 
@@ -192,6 +174,25 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
         total_generated++;
     }
+
+    /**
+     *  Update create an entry in sss_runs table for this M and N
+     */
+    ostringstream query;
+    query << "INSERT INTO sss_runs SET "
+          << "max_value =  " << max_set_value << ", "
+          << "subset_size = " << set_size << ", "
+          << "slices = " << total_generated << ", "
+          << "completed = 0, errors = 0";
+
+    log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
+    mysql_query(boinc_db.mysql, query.str().c_str()); 
+
+    if (mysql_errno(boinc_db.mysql) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+        exit(1);
+    }
+
 
     log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
 }
