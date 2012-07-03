@@ -72,7 +72,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
 
     // make a unique name (for the job and its input file)
     //
-    sprintf(name, "%s_%u_%u_%llu", app_name, max_set_value, set_size, starting_set);
+    sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
     fprintf(stdout, "name: '%s'\n", name);
 
     // Create the input file.
@@ -111,11 +111,11 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     //
     sprintf(path, "templates/%s", out_template_file);
 
-    sprintf(command_line, " %u %u %llu %llu", max_set_value, set_size, starting_set, sets_to_evaluate);
+    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set, sets_to_evaluate);
     fprintf(stdout, "command line: '%s'\n", command_line);
 
     uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    fprintf(stdout, "total sets: %llu, starting_set + sets_to_evaluate: %llu\n", total_sets, starting_set + sets_to_evaluate);
+    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
     sprintf(additional_xml, "<credit>60</credit>");
 
@@ -133,7 +133,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     return 1;
 }
 
-int make_jobs(uint32_t max_set_value, uint32_t set_size) {
+void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     int unsent_results;
     int retval;
 
@@ -171,7 +171,7 @@ int make_jobs(uint32_t max_set_value, uint32_t set_size) {
         total_generated++;
     }
 
-    fprintf(stdout, "workunits generated: %llu\n", total_generated);
+    fprintf(stdout, "workunits generated: %lu\n", total_generated);
 }
 
 void usage(char *name) {
@@ -190,7 +190,7 @@ void usage(char *name) {
         "  --in_template_file           Input template (default: example_app_in)\n"
         "  --out_template_file          Output template (default: example_app_out)\n"
         "  -m | --max_set_value         The maximum value in the sets to be generated (REQUIRED).\n"       //Added for the subset sum problem
-        "  -n | --set_size              The size of the sets to be generated (REQUIRED).\n",               //Added for the subset sum problem
+        "  -n | --set_size              The size of the sets to be generated (REQUIRED).\n"                //Added for the subset sum problem
         "  [ -d X ]                     Sets debug level to X.\n"
         "  [ -h | --help ]              Shows this help text.\n"
         "  [ -v | --version ]           Shows version information.\n",
@@ -201,7 +201,7 @@ void usage(char *name) {
 int main(int argc, char** argv) {
     int i, retval;
     char buf[256];
-    uint32_t max_set_value, set_size;
+    uint32_t max_set_value = 0, set_size = 0;
 
     bool max_set_value_found = false;
     bool set_size_found = false;

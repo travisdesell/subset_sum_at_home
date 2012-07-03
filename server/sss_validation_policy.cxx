@@ -34,8 +34,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "../undvc_common/parse_xml.hxx"
-#include "../undvc_common/file_io.hxx"
+#include "undvc_common/parse_xml.hxx"
+#include "undvc_common/file_io.hxx"
 
 using std::string;
 using std::vector;
@@ -48,9 +48,7 @@ struct SSS_RESULT {
 
 int init_result(RESULT& result, void*& data) {
     int retval;
-    vector<FILE_INFO> files;
-    char md5_buf[MD5_LEN];
-    double nbytes;
+    vector<OUTPUT_FILE_INFO> files;
 
     retval = get_output_file_infos(result, files);
     if (retval) {
@@ -63,13 +61,13 @@ int init_result(RESULT& result, void*& data) {
         for (uint32_t i = 0; i < files.size(); i++) {
             log_messages.printf(MSG_CRITICAL, "    %s\n", files[i].path.c_str());
         }
-        exit(0);
+        exit(1);
     }
 
-    FILE_INFO& fi = files[0];
+    OUTPUT_FILE_INFO& fi = files[0];
     if (fi.no_validate) {
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had file set to no validate: %s\n", result.id, result.name, fi.path.c_str());
-        exit(0);
+        exit(1);
         //continue;
     }
 
@@ -98,7 +96,7 @@ int init_result(RESULT& result, void*& data) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
 //        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
 //        result.validate_state = VALIDATE_STATE_INVALID;
-        exit(0);
+        exit(1);
         throw 0;
     }
 
@@ -130,12 +128,12 @@ int compare_results(
                 match = true;
             } else {
                 match = false;
-                exit(0);
+                exit(1);
             }
         } else {
             match = false;
             log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
-            exit(0);
+            exit(1);
         }
     } else {
         match = false;
