@@ -78,7 +78,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     // make a unique name (for the job and its input file)
     //
     sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
-    fprintf(stdout, "name: '%s'\n", name);
+//    fprintf(stdout, "name: '%s'\n", name);
 
     // Create the input file.
     // Put it at the right place in the download dir hierarchy
@@ -117,10 +117,10 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     sprintf(path, "templates/%s", out_template_file);
 
     sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set, sets_to_evaluate);
-    fprintf(stdout, "command line: '%s'\n", command_line);
+//    fprintf(stdout, "command line: '%s'\n", command_line);
 
-    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
+//    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+//    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
     sprintf(additional_xml, "<credit>60</credit>");
 
