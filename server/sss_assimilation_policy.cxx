@@ -187,7 +187,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
          */
         query.str("");
         query.clear();
-        query << "UPDATE sss_runs SET completed = completed + 1 WHERE id = " << id;
+        query << "UPDATE sss_runs SET completed = completed + 1, failed_set_count = failed_set_count + " << failed_sets.size() << " WHERE id = " << id;
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
         mysql_query(conn, query.str().c_str());
