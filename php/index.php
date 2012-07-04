@@ -1,10 +1,10 @@
 <html>
 <head>
-<title>UND - SubsetSum@Home: Videos</title>
+<title>UND - SubsetSum@Home Progress</title>
 <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-<div class="title">SubsetSum@Home: Videos</div>
+<div class="title">SubsetSum@Home Progress</div>
 <br />
 <div class="navigationmain">
 <div class="header">Navigation</div>
