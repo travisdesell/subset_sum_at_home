@@ -10,7 +10,7 @@
 		echo "<tr class=\"d" . ($i & 1) . "\">";
 #        echo "<tr>";
 
-        echo "<td><div class=\"new\">" . $row['max_value'] . "</div></td>";
+        echo "<td><div class=\"max_value\">" . $row['max_value'] . "</div></td>";
         echo "<td><div class=\"subset_size\">" . $row['subset_size'] . "</div></td>";
         echo "<td><div class=\"slices\">". $row['slices'] . "</div></td>";
         echo "<td><div class=\"completed\">" . $row['completed'] . "</div></td>";
