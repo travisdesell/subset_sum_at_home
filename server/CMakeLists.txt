@@ -35,3 +35,12 @@ include_directories(
 
 add_executable(sss_work_generator sss_work_generator)
 target_link_libraries(sss_work_generator undvc_common ${BOINC_LIBRARIES} ${MYSQL_LIBRARIES} ${OPENSSL_LIBRARIES})
+
+add_definitions( -DHTML_OUTPUT -DENABLE_COLOR)
+add_executable(sss_webpage_generator
+    sss_webpage_generator
+    ../common/generate_subsets
+    ../common/n_choose_k
+    ../common/binary_output)
+target_link_libraries(sss_webpage_generator undvc_common ${BOINC_LIBRARIES} ${MYSQL_LIBRARIES})
+
