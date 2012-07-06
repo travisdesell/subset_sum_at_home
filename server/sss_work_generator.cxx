@@ -32,6 +32,7 @@
 #include <string>
 #include <cstring>
 #include <sstream>
+#include <cmath>
 
 #include "boinc_db.h"
 #include "error_numbers.h"
@@ -62,7 +63,10 @@ DB_APP app;
 int start_time;
 int seqno;
 
+const uint64_t SETS_PER_WORKUNIT = 2203961430;
+
 using namespace std;
+
 
 // create one new job
 //
@@ -90,10 +94,10 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     fprintf(f, "This is the input file for job %s", name);
     fclose(f);
 
-    double number_of_sets = 1e9;        //TODO: figure out the number of sets for a decent sized workunit
-    double fpops_per_set = 15 * 1e3;         //TODO: figure out an estimate of how many fpops per set calculation
-    double fpops_est = fpops_per_set * number_of_sets;
+    double fpops_per_set = set_size * log(max_set_value) * 1e4;         //TODO: figure out an estimate of how many fpops per set calculation
+    double fpops_est = fpops_per_set * SETS_PER_WORKUNIT;
 
+    double credit = fpops_est / (2.5 * 10e12);
 
     // Fill in the job parameters
     //
@@ -122,7 +126,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
 //    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
 //    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
-    sprintf(additional_xml, "<credit>60</credit>");
+    sprintf(additional_xml, "<credit>%.3lf</credit>", credit);
 
     return create_work(
         wu,
@@ -156,9 +160,6 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     }
 
     //divide up the sets into mostly equal sized workunits
-
-    uint64_t SETS_PER_WORKUNIT = 2203961430;    //maybe have this as a #define
-                                                //this should give a workunit around 30 minutes
 
     uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
     uint64_t current_set = 0;
