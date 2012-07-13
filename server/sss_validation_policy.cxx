@@ -94,10 +94,12 @@ int init_result(RESULT& result, void*& data) {
 //        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
     } catch (string error_message) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
+        log_messages.printf(MSG_CRITICAL, "XML:\n%s\n", fc.c_str());
 //        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
 //        result.validate_state = VALIDATE_STATE_INVALID;
-        exit(1);
-        throw 0;
+        return ERR_XML_PARSE;
+//        exit(1);
+//        throw 0;
     }
 
     data = (void*) sss_result;

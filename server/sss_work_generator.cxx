@@ -94,10 +94,10 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     fprintf(f, "This is the input file for job %s", name);
     fclose(f);
 
-    double fpops_per_set = set_size * log(max_set_value) * 1e4;         //TODO: figure out an estimate of how many fpops per set calculation
+    double fpops_per_set = set_size * log(max_set_value) * 1e2;         //TODO: figure out an estimate of how many fpops per set calculation
     double fpops_est = fpops_per_set * SETS_PER_WORKUNIT;
 
-    double credit = fpops_est / (2.5 * 10e12);
+    double credit = fpops_est / (2.5 * 10e10);
 
     // Fill in the job parameters
     //
