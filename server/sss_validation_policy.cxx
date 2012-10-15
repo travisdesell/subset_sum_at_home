@@ -34,7 +34,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "../common/util.hpp"
+#include "undvc_common/parse_xml.hxx"
+#include "undvc_common/file_io.hxx"
 
 using std::string;
 using std::vector;
@@ -45,30 +46,9 @@ struct SSS_RESULT {
     vector<uint64_t> failed_sets;
 };
 
-string get_file_as_string(string file_path) throw (int) {
-    //read the entire contents of the file into a string
-    ifstream sites_file(file_path.c_str());
-
-    if (!sites_file.is_open()) {
-        throw 1;
-    }
-
-    std::string fc;
-
-    sites_file.seekg(0, std::ios::end);   
-    fc.reserve(sites_file.tellg());
-    sites_file.seekg(0, std::ios::beg);
-
-    fc.assign((std::istreambuf_iterator<char>(sites_file)), std::istreambuf_iterator<char>());
-
-    return fc;
-}
-
 int init_result(RESULT& result, void*& data) {
     int retval;
-    vector<FILE_INFO> files;
-    char md5_buf[MD5_LEN];
-    double nbytes;
+    vector<OUTPUT_FILE_INFO> files;
 
     retval = get_output_file_infos(result, files);
     if (retval) {
@@ -81,13 +61,13 @@ int init_result(RESULT& result, void*& data) {
         for (uint32_t i = 0; i < files.size(); i++) {
             log_messages.printf(MSG_CRITICAL, "    %s\n", files[i].path.c_str());
         }
-        exit(0);
+        exit(1);
     }
 
-    FILE_INFO& fi = files[0];
+    OUTPUT_FILE_INFO& fi = files[0];
     if (fi.no_validate) {
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had file set to no validate: %s\n", result.id, result.name, fi.path.c_str());
-        exit(0);
+        exit(1);
         //continue;
     }
 
@@ -114,10 +94,12 @@ int init_result(RESULT& result, void*& data) {
 //        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
     } catch (string error_message) {
         log_messages.printf(MSG_CRITICAL, "sss_validation_policy get_data_from_result([RESULT#%d %s]) failed with error: %s\n", result.id, result.name, error_message.c_str());
+        log_messages.printf(MSG_CRITICAL, "XML:\n%s\n", fc.c_str());
 //        result.outcome = RESULT_OUTCOME_VALIDATE_ERROR;
 //        result.validate_state = VALIDATE_STATE_INVALID;
-        exit(0);
-        throw 0;
+        return ERR_XML_PARSE;
+//        exit(1);
+//        throw 0;
     }
 
     data = (void*) sss_result;
@@ -148,12 +130,12 @@ int compare_results(
                 match = true;
             } else {
                 match = false;
-                exit(0);
+                exit(1);
             }
         } else {
             match = false;
             log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
-            exit(0);
+            exit(1);
         }
     } else {
         match = false;

@@ -5,8 +5,8 @@
 #include <iomanip>
 
 #include "stdint.h"
-#include "output.hpp"
-#include "../client/bit_logic.hpp"
+#include "bit_logic.hpp"
+#include "binary_output.hpp"
 
 
 using namespace std;

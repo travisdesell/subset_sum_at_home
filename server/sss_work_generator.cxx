@@ -31,6 +31,8 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <sstream>
+#include <cmath>
 
 #include "boinc_db.h"
 #include "error_numbers.h"
@@ -44,9 +46,11 @@
 #include "sched_msgs.h"
 #include "str_util.h"
 
+#include "mysql.h"
+
 #include "../common/n_choose_k.hpp"
 
-#define CUSHION 10
+#define CUSHION 100
     // maintain at least this many unsent results
 #define REPLICATION_FACTOR  1
 
@@ -58,6 +62,11 @@ char* in_template;
 DB_APP app;
 int start_time;
 int seqno;
+
+const uint64_t SETS_PER_WORKUNIT = 2203961430;
+
+using namespace std;
+
 
 // create one new job
 //
@@ -72,8 +81,8 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
 
     // make a unique name (for the job and its input file)
     //
-    sprintf(name, "%s_%u_%u_%llu", app_name, max_set_value, set_size, starting_set);
-    fprintf(stdout, "name: '%s'\n", name);
+    sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
+//    fprintf(stdout, "name: '%s'\n", name);
 
     // Create the input file.
     // Put it at the right place in the download dir hierarchy
@@ -85,10 +94,10 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     fprintf(f, "This is the input file for job %s", name);
     fclose(f);
 
-    double number_of_sets = 1e9;        //TODO: figure out the number of sets for a decent sized workunit
-    double fpops_per_set = 15 * 1e3;         //TODO: figure out an estimate of how many fpops per set calculation
-    double fpops_est = fpops_per_set * number_of_sets;
+    double fpops_per_set = set_size * log(max_set_value) * 1e2;         //TODO: figure out an estimate of how many fpops per set calculation
+    double fpops_est = fpops_per_set * SETS_PER_WORKUNIT;
 
+    double credit = fpops_est / (2.5 * 10e10);
 
     // Fill in the job parameters
     //
@@ -111,13 +120,13 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     //
     sprintf(path, "templates/%s", out_template_file);
 
-    sprintf(command_line, " %u %u %llu %llu", max_set_value, set_size, starting_set, sets_to_evaluate);
-    fprintf(stdout, "command line: '%s'\n", command_line);
+    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set, sets_to_evaluate);
+//    fprintf(stdout, "command line: '%s'\n", command_line);
 
-    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    fprintf(stdout, "total sets: %llu, starting_set + sets_to_evaluate: %llu\n", total_sets, starting_set + sets_to_evaluate);
+//    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+//    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
-    sprintf(additional_xml, "<credit>60</credit>");
+    sprintf(additional_xml, "<credit>%.3lf</credit>", credit);
 
     return create_work(
         wu,
@@ -133,7 +142,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, u
     return 1;
 }
 
-int make_jobs(uint32_t max_set_value, uint32_t set_size) {
+void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     int unsent_results;
     int retval;
 
@@ -152,12 +161,8 @@ int make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    uint64_t SETS_PER_WORKUNIT = 2203961430;    //maybe have this as a #define
-                                                    //this should give a workunit around 30 minutes
-
     uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
     uint64_t current_set = 0;
-
     uint64_t total_generated = 0;
 
     while (current_set < total_sets) {
@@ -171,8 +176,124 @@ int make_jobs(uint32_t max_set_value, uint32_t set_size) {
         total_generated++;
     }
 
-    fprintf(stdout, "workunits generated: %llu\n", total_generated);
+    /**
+     *  Update create an entry in sss_runs table for this M and N
+     */
+    ostringstream query;
+    query << "INSERT INTO sss_runs SET "
+          << "max_value =  " << max_set_value << ", "
+          << "subset_size = " << set_size << ", "
+          << "slices = " << total_generated << ", "
+          << "completed = 0, errors = 0";
+
+    log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
+    mysql_query(boinc_db.mysql, query.str().c_str()); 
+
+    if (mysql_errno(boinc_db.mysql) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+        exit(1);
+    }
+
+
+    log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
 }
+
+void main_loop() {
+    int retval;
+
+    /**
+     *  Get max_set_value and subset_size from sss_progress table
+     */
+    uint32_t max_set_value, subset_size;
+
+    ostringstream query;
+    query << "SELECT current_max_value, current_subset_size FROM sss_progress";
+
+    log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
+    mysql_query(boinc_db.mysql, query.str().c_str());
+    MYSQL_RES *result = mysql_store_result(boinc_db.mysql);
+
+    if (mysql_errno(boinc_db.mysql) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+        exit(1);
+    }   
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    if (mysql_errno(boinc_db.mysql) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+    } else if (row == NULL) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progres: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+        log_messages.printf(MSG_CRITICAL, "returned NULL for rows.\n");
+        exit(1);
+    }   
+
+    max_set_value = atoi(row[0]);
+    subset_size = atoi(row[1]);
+    mysql_free_result(result);
+
+    while (1) {
+        check_stop_daemons();
+
+        int n;
+        retval = count_unsent_results(n, app.id);
+
+        if (retval) {
+            log_messages.printf(MSG_CRITICAL,"count_unsent_jobs() failed: %s\n", boincerror(retval));
+            exit(retval);
+        }   
+
+        if (n > CUSHION) {
+            sleep(30);
+        } else {
+            log_messages.printf(MSG_DEBUG, "%d results are available, with a cushion of %d\n", n, CUSHION);
+
+            make_jobs(max_set_value, subset_size);
+
+            subset_size++;
+
+            //If the set is odd, and the set size is > the (max_set_value - 1) / 2 or
+            //if the set is even and the set size is > max_set_value / 2, increase the max value
+            //and update the set size, ex:
+            //max_set_value = 32, set sizes should be 16, 17, 18
+            //max_set_value = 33, set sizes should be 16, 17, 18
+            //max_set_value = 34, set sizes should be 17, 18, 19
+            //etc.
+            if (max_set_value % 2 == 0) { //even
+                if (subset_size > (max_set_value / 2) + 2) {
+                    subset_size -= 3;
+                    max_set_value++;
+                }
+            } else { //odd
+                if (subset_size > ((max_set_value - 1) / 2) + 2) {
+                    subset_size -= 2;
+                    max_set_value++;
+                }
+            }
+
+            //Now actually update the database
+            query.str("");
+            query.clear();
+            query << "UPDATE sss_progress SET "
+                << "current_max_value = " << max_set_value << ", "
+                << "current_subset_size = " << subset_size;
+
+            log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
+            mysql_query(boinc_db.mysql, query.str().c_str()); 
+
+            if (mysql_errno(boinc_db.mysql) != 0) {
+                log_messages.printf(MSG_CRITICAL, "ERROR: could not update sss_progress with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+                exit(1);
+            }   
+
+
+            // Now sleep for a few seconds to let the transitioner
+            // create instances for the jobs we just created.
+            // Otherwise we could end up creating an excess of jobs.
+            sleep(30);
+        }   
+    }   
+}
+
 
 void usage(char *name) {
     fprintf(stderr, "This is an example BOINC work generator.\n"
@@ -189,8 +310,6 @@ void usage(char *name) {
         "  --app X                      Application name (default: example_app)\n"
         "  --in_template_file           Input template (default: example_app_in)\n"
         "  --out_template_file          Output template (default: example_app_out)\n"
-        "  -m | --max_set_value         The maximum value in the sets to be generated (REQUIRED).\n"       //Added for the subset sum problem
-        "  -n | --set_size              The size of the sets to be generated (REQUIRED).\n",               //Added for the subset sum problem
         "  [ -d X ]                     Sets debug level to X.\n"
         "  [ -h | --help ]              Shows this help text.\n"
         "  [ -v | --version ]           Shows version information.\n",
@@ -201,10 +320,6 @@ void usage(char *name) {
 int main(int argc, char** argv) {
     int i, retval;
     char buf[256];
-    uint32_t max_set_value, set_size;
-
-    bool max_set_value_found = false;
-    bool set_size_found = false;
 
 //Aaron Comment: command line flags are explained in descriptions above.
     for (i=1; i<argc; i++) {
@@ -230,24 +345,11 @@ int main(int argc, char** argv) {
             printf("%s\n", SVN_VERSION);
             exit(0);
 
-        } else if (is_arg(argv[i], "m") || is_arg(argv[i], "max_set_value")) {
-            max_set_value = atoi(argv[++i]);
-            max_set_value_found = true;
-
-        } else if (is_arg(argv[i], "n") || is_arg(argv[i], "set_size")) {
-            set_size = atoi(argv[++i]);
-            set_size_found = true;
-
         } else {
             log_messages.printf(MSG_CRITICAL, "unknown command line argument: %s\n\n", argv[i]);
             usage(argv[0]);
             exit(1);
         }
-    }
-
-    if ( !(max_set_value_found && set_size_found) ) {
-        usage(argv[0]);
-        exit(0);
     }
 
 //Aaron Comment: if at any time the retval value is greater than 0, then the program
@@ -293,10 +395,5 @@ int main(int argc, char** argv) {
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
 
-    if (max_set_value <= set_size) {
-        fprintf(stderr, "ERROR: max_set_value (%u) <= set_size (%u)\n", max_set_value, set_size);
-        exit(1);
-    }
-
-    make_jobs(max_set_value, set_size);
+    main_loop();
 }
