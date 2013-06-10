@@ -34,18 +34,23 @@
 #include <fstream>
 #include <sstream>
 
-#include "../common/big_int.hpp"
+#include "../common/binary_output.hpp"
 
 #include "undvc_common/parse_xml.hxx"
 #include "undvc_common/file_io.hxx"
 
+#include <boost/multiprecision/gmp.hpp>
+
+using boost::multiprecision::mpz_int;
+
+using std::ostringstream;
 using std::string;
 using std::vector;
 using std::ifstream;
 
 struct SSS_RESULT {
     uint32_t checksum;
-    vector<BigInt> failed_sets;
+    vector<mpz_int> failed_sets;
 };
 
 int init_result(RESULT& result, void*& data) {
@@ -91,7 +96,7 @@ int init_result(RESULT& result, void*& data) {
 
 //        cout << "checksum: " << sss_result->checksum << endl;
 
-        parse_xml_vector<BigInt>(fc, "failed_subsets", sss_result->failed_sets);
+        parse_xml_vector<mpz_int>(fc, "failed_subsets", sss_result->failed_sets);
 
 //        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
     } catch (string error_message) {
@@ -122,7 +127,13 @@ int compare_results(
             bool all_match = true;
             for (unsigned int i = 0; i < f1->failed_sets.size(); i++) {
                 if (f1->failed_sets[i] != f2->failed_sets[i]) {
-                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%d] did not match %s vs %s\n", r1.id, r1.name, r2.id, r2.name, i, f1->failed_sets[i].to_decimal_string().c_str(), f2->failed_sets[i].to_decimal_string().c_str());
+
+                    ostringstream failed1;
+                    failed1 << f1->failed_sets[i];
+                    ostringstream failed2;
+                    failed2 << f2->failed_sets[i];
+
+                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%d] did not match %s vs %s\n", r1.id, r1.name, r2.id, r2.name, i, failed1.str().c_str(), failed2.str().c_str());
                     all_match = false;
                     break;
                 }

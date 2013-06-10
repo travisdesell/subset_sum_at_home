@@ -45,6 +45,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/undvc_common/c
 #set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0")
 #find_package(Boost REQUIRED system filesystem)
 #include_directories (${Boost_INCLUDE_DIR})
+#message("FOUND BOOST DIRECTORIES: ${Boost_INCLUDE_DIR}")
+
+include_directories(/home/tdesell/boost_1_53_0/)
 
 find_package(BOINC)
 

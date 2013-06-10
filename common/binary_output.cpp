@@ -4,13 +4,21 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #include "stdint.h"
 #include "binary_output.hpp"
 
+#include "../undvc_common/parse_xml.hxx"
+
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
+#include <boost/multiprecision/gmp.hpp>
+
 using namespace std;
+
+using boost::multiprecision::mpz_int;
 
 /**
  *  Some (rough) conversion functions.  These are lossy
@@ -31,6 +39,46 @@ double mpz_int_to_double(mpz_int value) {
     mpz_set(temp, value.backend().data());
     return mpz_get_d(temp);
 } 
+
+template <>
+void string_to_vector<mpz_int>(string s, vector<mpz_int> &v) {
+    v.clear();
+
+    vector<std::string> split_string;
+    boost::split(split_string, s, boost::is_any_of("[], "));
+
+    for (uint32_t i = 0; i < split_string.size(); i++) {
+        if (split_string[i].size() > 0) {
+            v.push_back( mpz_int(split_string[i]) );
+        }   
+    }   
+}
+
+template <>
+void parse_xml_vector<mpz_int>(string xml, const char tag[], vector<mpz_int> &result) throw (string) {
+    string start_tag("<");
+    start_tag.append(tag);
+    start_tag.append(">");
+
+    string end_tag("</");
+    end_tag.append(tag);
+    end_tag.append(">");
+
+    int start = xml.find(start_tag, 0) + start_tag.size();
+    int end = xml.find(end_tag, 0); 
+    int length = end - start;
+
+    if (length > 0) {
+        string_to_vector<mpz_int>(xml.substr(start, length), result);
+        return;
+    } else if (length == 0) {
+        return;
+    } else {
+        ostringstream oss;
+        oss << "Tag '" << tag << "' was not found, find(" << start_tag << ") returned " << start << ", find(" << end_tag << ") returned " << end << ", error in file [" << __FILE__ << "] on line [" << __LINE__ << "]" << endl;
+        throw oss.str();
+    }   
+}
 
 
 /**

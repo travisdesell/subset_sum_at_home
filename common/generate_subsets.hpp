@@ -3,7 +3,6 @@
 
 #include "stdint.h"
 
-#include "../common/big_int.hpp"
 #include "../common/n_choose_k.hpp"
 
 #include <boost/multiprecision/gmp.hpp>

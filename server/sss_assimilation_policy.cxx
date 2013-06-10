@@ -33,7 +33,7 @@
 #include "mysql.h"
 #include "boinc_db.h"
 
-#include "../common/big_int.hpp"
+#include "../common/binary_output.hpp"
 
 #include "undvc_common/file_io.hxx"
 #include "undvc_common/parse_xml.hxx"
@@ -62,7 +62,10 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
     subset_size     = atol( split_string[3].c_str() );
     starting_subset = mpz_int( split_string[4] );
 
-    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %s\n", max_value, subset_size, starting_subset.to_decimal_string().c_str());
+    ostringstream oss;
+    oss << starting_subset;
+
+    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %s\n", max_value, subset_size, oss.str().c_str());
 
     uint32_t id;        //get the run id from the max_value and subset size
 
@@ -102,7 +105,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         query.clear();
         query << "INSERT INTO sss_errors SET "
             << "id = " << id << ", "
-            << "starting_subset = " << starting_subset.to_decimal_string();
+            << "starting_subset = '" << starting_subset << "'";
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
         mysql_query(conn, query.str().c_str());
@@ -175,7 +178,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
             query.clear();
             query << "INSERT INTO sss_results SET "
                 << "id = " << id << ", "
-                << "failed_set = " << failed_sets[i].to_decimal_string();
+                << "failed_set = '" << failed_sets[i] << "'";
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
             mysql_query(conn, query.str().c_str());

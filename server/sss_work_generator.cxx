@@ -49,7 +49,8 @@
 
 #include "mysql.h"
 
-#include "../common/big_int.hpp"
+#include <boost/multiprecision/gmp.hpp>
+
 #include "../common/n_choose_k.hpp"
 
 #define CUSHION 100
@@ -68,11 +69,12 @@ int seqno;
 const uint64_t SETS_PER_WORKUNIT = 2203961430;
 
 using namespace std;
+using boost::multiprecision::mpz_int;
 
 
 // create one new job
 //
-int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, BigInt sets_to_evaluate) {
+int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mpz_int sets_to_evaluate) {
     DB_WORKUNIT wu;
 
     char name[256], path[256];
@@ -82,10 +84,11 @@ int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, Big
     int retval;
 
     // make a unique name (for the job and its input file)
-    //
-    sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
+    ostringstream oss;
+    oss << app_name << "_" << max_set_value << "_" << set_size << "_" << starting_set;
+    sprintf(name, "%s", oss.str().c_str());
 //    fprintf(stdout, "name: '%s'\n", name);
-/
+
     // Create the input file.
     // Put it at the right place in the download dir hierarchy
     //
@@ -122,7 +125,11 @@ int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, Big
     //
     sprintf(path, "templates/%s", out_template_file);
 
-    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set.to_decimal_string().c_str(), sets_to_evaluate.to_decimal_string().c_str());
+    oss.clear();
+    oss.str("");    //reset the ostringstream
+    oss << " " << max_set_value << " " << set_size << " " << starting_set << " " << sets_to_evaluate;
+    sprintf(command_line, "%s", oss.str().c_str());
+
 //    fprintf(stdout, "command line: '%s'\n", command_line);
 
 //    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
@@ -167,9 +174,9 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    BigInt total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    BigInt current_set = 0;
-    uint64_t total_generated = 0;
+    mpz_int total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+    mpz_int current_set = 0;
+    mpz_int total_generated = 0;
 
     cout << "current set: " << current_set << ", total sets: " << total_sets << endl;
 
@@ -208,7 +215,9 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     }
 
 
-    log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
+    ostringstream oss;
+    oss << total_generated;
+    log_messages.printf(MSG_DEBUG, "workunits generated: %s\n", oss.str().c_str());
 }
 
 void main_loop() {
