@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.6)
 project (SUBSET_SUM)
 # The version number.
 set (SUBSET_SUM_VERSION_MAJOR 0)
@@ -50,7 +50,7 @@ find_package(BOINC)
 
 add_subdirectory(undvc_common)
 add_subdirectory(common)
-add_subdirectory(client)
+#add_subdirectory(client)
 
 find_package(MySQL)
 find_package(Boost REQUIRED COMPONENTS system)
