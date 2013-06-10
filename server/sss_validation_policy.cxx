@@ -34,6 +34,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "../common/big_int.hpp"
+
 #include "undvc_common/parse_xml.hxx"
 #include "undvc_common/file_io.hxx"
 
@@ -43,7 +45,7 @@ using std::ifstream;
 
 struct SSS_RESULT {
     uint32_t checksum;
-    vector<uint64_t> failed_sets;
+    vector<BigInt> failed_sets;
 };
 
 int init_result(RESULT& result, void*& data) {
@@ -89,7 +91,7 @@ int init_result(RESULT& result, void*& data) {
 
 //        cout << "checksum: " << sss_result->checksum << endl;
 
-        parse_xml_vector<uint64_t>(fc, "failed_subsets", sss_result->failed_sets);
+        parse_xml_vector<BigInt>(fc, "failed_subsets", sss_result->failed_sets);
 
 //        cout << "failed subsets size: " << sss_result->failed_sets.size() << endl;
     } catch (string error_message) {
@@ -120,7 +122,7 @@ int compare_results(
             bool all_match = true;
             for (unsigned int i = 0; i < f1->failed_sets.size(); i++) {
                 if (f1->failed_sets[i] != f2->failed_sets[i]) {
-                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%d] did not match %llu vs %llu\n", r1.id, r1.name, r2.id, r2.name, i, f1->failed_sets[i], f2->failed_sets[i]);
+                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%d] did not match %s vs %s\n", r1.id, r1.name, r2.id, r2.name, i, f1->failed_sets[i].to_decimal_string().c_str(), f2->failed_sets[i].to_decimal_string().c_str());
                     all_match = false;
                     break;
                 }

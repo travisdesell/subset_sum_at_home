@@ -1,12 +1,14 @@
 #include "stdint.h"
 
 #include "generate_subsets.hpp"
+
+#include "../common/big_int.hpp"
 #include "../common/n_choose_k.hpp"
 
-void generate_ith_subset(uint64_t i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
+void generate_ith_subset(BigInt i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
     uint32_t pos = 0;
     uint32_t current_value = 1;
-    uint64_t nck;
+    BigInt nck;
 
     while (pos < subset_size - 1) {
         //TODO: this does not need to be recalcualted, there is a faster way to do this
