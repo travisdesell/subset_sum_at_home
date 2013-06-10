@@ -3,14 +3,16 @@
 #include "generate_subsets.hpp"
 #include "../common/n_choose_k.hpp"
 
-void generate_ith_subset(uint64_t i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
+#include <boost/multiprecision/gmp.hpp>
+
+using boost::multiprecision::mpz_int;
+
+void generate_ith_subset(mpz_int i, uint32_t *subset, uint32_t subset_size, uint32_t max_set_value) {
     uint32_t pos = 0;
     uint32_t current_value = 1;
-    uint64_t nck;
+    mpz_int nck;
 
     while (pos < subset_size - 1) {
-        //TODO: this does not need to be recalcualted, there is a faster way to do this
-        //Would be the fastest way to do it if we were using a table of n choose k values -- which we should for a big int representation
         nck = n_choose_k((max_set_value - 1) - current_value, (subset_size - 1) - (pos + 1));
 
         if (i < nck) {

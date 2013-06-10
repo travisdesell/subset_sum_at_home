@@ -34,12 +34,9 @@
  */
 
 #include "../common/generate_subsets.hpp"
-#include "../common/binary_output.hpp"
 #include "../common/n_choose_k.hpp"
 
-
 #include <boost/multiprecision/gmp.hpp>
-
 
 using namespace std;
 
@@ -48,13 +45,39 @@ using boost::multiprecision::mpz_int;
 string checkpoint_file = "sss_checkpoint.txt";
 string output_filename = "failed_sets.txt";
 
+uint32_t checksum = 0;
 vector<mpz_int> *failed_sets = new vector<mpz_int>();
 
-uint32_t checksum = 0;
 
-mpz_int sums;
-mpz_int new_sums;
+/**
+ *  Some (rough) conversion functions.  These are lossy
+ *  and will lose precision, especially converting to an
+ *  int if the mpz_int is larger.  But that shouldn't happen
+ *  at least in this code.
+ */
+uint32_t mpz_int_to_uint32_t(mpz_int value) {
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_set(temp, value.backend().data());
+    return mpz_get_si(temp);
+} 
 
+double mpz_int_to_double(mpz_int value) {
+    mpz_t temp;
+    mpz_init(temp);
+    mpz_set(temp, value.backend().data());
+    return mpz_get_d(temp);
+} 
+
+
+string bit_string(mpz_int x) {
+    std::string s;
+    do {
+        s.push_back('0' + mpz_int_to_uint32_t(x & 1));
+    } while (x >>= 1);
+    std::reverse(s.begin(), s.end());
+    return s;
+}
 
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
@@ -66,29 +89,41 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 
     for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
     
-    sums = 0;
-    new_sums = 0;
+    mpz_int sums = 0;
+    mpz_int new_sums = 0;
 
     uint32_t current;
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
+//        cout << "current: " << current << endl;
 
         new_sums = sums << current;
         sums |= new_sums;
-        sums != 1 << (current - 1);
+        sums |= 1 << (current - 1);
     }
 
+//    cout << "targets 1s between: " << M-1 << " and " << (max_subset_sum - M) << endl;
+
     mpz_int target = 0;
-    for (uint32_t i = M; i < max_subset_sum - M; i++) {
-        target |= 1 << i;
+    for (uint32_t i = M-1; i < max_subset_sum - M; i++) {
+        target |= mpz_int(1) << i;
     }
+
+//    cout << "target: " << target << endl;
+
+    string sums_string = bit_string(sums);
+    string target_string = bit_string(target);
+//    cout << "sums:   " << sums_string << endl;
+//    cout << "target: " << setw(sums_string.size()) << target_string << endl;
 
     bool success = (target & sums) == target;   //the sums bits are all ones between M and max_subset_sum - M
 
+//    cout << "ones between: " << M << " and " << (max_subset_sum - M) << endl;
+//    cout << "success: " << success << endl << endl;
+
 #ifdef _BOINC_
     //Alternate checksum calculation with overflow detection
-    mpz_int ac = sums % UINT32_MAX;
-    uint32_t add_to_checksum = ac;
+    uint32_t add_to_checksum = mpz_int_to_uint32_t( sums % UINT32_MAX );
 
     if (UINT32_MAX - checksum <= add_to_checksum) {
         checksum += add_to_checksum;
@@ -281,20 +316,20 @@ int main(int argc, char** argv) {
      *  mpz_int is a boost multi-precision integer class.  This allows for arbitrarily large
      *  integers, which are required when M > 53ish.
      */
-    mpz_int starting_subset = 0;
     mpz_int iteration = 0;
     mpz_int pass = 0;
     mpz_int fail = 0;
+    mpz_int starting_subset = 0;
     mpz_int subsets_to_calculate = 0;
 
     bool doing_slice = false;
 
-    n_choose_k_init();      //Initialize the n choose k table
+    n_choose_k_init(max_set_value, subset_size);      //Initialize the n choose k table
 
     if (argc == 5) {
         doing_slice = true;
-        starting_subset = parse_t<uint64_t>(argv[3]);
-        subsets_to_calculate = parse_t<uint64_t>(argv[4]);
+        starting_subset = mpz_int(argv[3]);
+        subsets_to_calculate = mpz_int(argv[4]);
         cerr << "argv[1]:       " << argv[1]       << ", argv[2]:     " << argv[2]     << ", argv[3]:         " << argv[3]         << ", argv[4]:              " << argv[4] << endl;
 	} else {
 		subsets_to_calculate = n_choose_k(max_set_value - 1, subset_size - 1);
@@ -404,9 +439,9 @@ int main(int argc, char** argv) {
         if (!success || (iteration % 10000) == 0) {
             double progress;
             if (doing_slice) {
-                progress = (double)iteration / (double)subsets_to_calculate;
+                progress = mpz_int_to_double(iteration * 100 / subsets_to_calculate) / 100.0;
             } else {
-                progress = (double)iteration / (double)expected_total;
+                progress = mpz_int_to_double(iteration * 100 / expected_total) / 100.0;
            }
 #ifdef _BOINC_
             boinc_fraction_done(progress);
@@ -473,8 +508,11 @@ int main(int argc, char** argv) {
         cerr << "the expected total number of sets is: " << expected_total << endl;
         *output_target << "the expected total number of sets is: " <<  expected_total << endl;
     }
-    cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
-    *output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass / ((double)pass + (double)fail)) << " success rate." << endl;
+
+    double success_rate = mpz_int_to_double(100 * pass / (pass + fail)) / 100.0;
+
+    cerr << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << success_rate << " success rate." << endl;
+    *output_target << pass + fail << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << success_rate << " success rate." << endl;
 
 #ifdef _BOINC_
     cerr << "</extra_info>" << endl;
