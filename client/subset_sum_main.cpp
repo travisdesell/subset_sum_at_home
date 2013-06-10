@@ -33,6 +33,7 @@
  *  Includes for subset sum
  */
 
+#include "../common/binary_output.hpp"
 #include "../common/generate_subsets.hpp"
 #include "../common/n_choose_k.hpp"
 
@@ -47,37 +48,6 @@ string output_filename = "failed_sets.txt";
 
 uint32_t checksum = 0;
 vector<mpz_int> *failed_sets = new vector<mpz_int>();
-
-
-/**
- *  Some (rough) conversion functions.  These are lossy
- *  and will lose precision, especially converting to an
- *  int if the mpz_int is larger.  But that shouldn't happen
- *  at least in this code.
- */
-uint32_t mpz_int_to_uint32_t(mpz_int value) {
-    mpz_t temp;
-    mpz_init(temp);
-    mpz_set(temp, value.backend().data());
-    return mpz_get_si(temp);
-} 
-
-double mpz_int_to_double(mpz_int value) {
-    mpz_t temp;
-    mpz_init(temp);
-    mpz_set(temp, value.backend().data());
-    return mpz_get_d(temp);
-} 
-
-
-string bit_string(mpz_int x) {
-    std::string s;
-    do {
-        s.push_back('0' + mpz_int_to_uint32_t(x & 1));
-    } while (x >>= 1);
-    std::reverse(s.begin(), s.end());
-    return s;
-}
 
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
@@ -111,8 +81,8 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 
 //    cout << "target: " << target << endl;
 
-    string sums_string = bit_string(sums);
-    string target_string = bit_string(target);
+//    string sums_string = mpz_int_to_binary_string(sums);
+//    string target_string = mpz_int_to_binary_string(target);
 //    cout << "sums:   " << sums_string << endl;
 //    cout << "target: " << setw(sums_string.size()) << target_string << endl;
 
@@ -480,6 +450,9 @@ int main(int argc, char** argv) {
     cerr << "<failed_subsets>";
 #endif
 
+//    print_html_header(&cout, max_set_value, subset_size);
+//    if (failed_sets->size() > 0) initialize_print_widths(failed_sets->at( failed_sets->size() - 1 ), max_set_value, subset_size);
+
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
 
@@ -487,7 +460,10 @@ int main(int argc, char** argv) {
         *output_target << " " << failed_sets->at(i);
 #endif
         cerr << " " << failed_sets->at(i);
+
+//        print_subset_calculation(&cout, failed_sets->at(i), subset, subset_size, false);
     }
+//    print_html_footer(&cout);
 
 #ifdef _BOINC_
     *output_target << "</failed_subsets>" << endl;
