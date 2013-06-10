@@ -9,17 +9,6 @@
 //#include "../common/output.hpp"
 
 
-const uint32_t ELEMENT_SIZE = sizeof(uint32_t) * 8;                      
-
-#ifdef HTML_OUTPUT                                                               
-extern double max_digits;                                                        
-extern double max_set_digits;                                                    
-#endif                                                                           
-
-extern unsigned long int max_sums_length;                                        
-extern uint32_t *sums;                                                       
-extern uint32_t *new_sums;                                                   
-
 using std::numeric_limits;
 
 //void shift_left(uint32_t *dest, const uint32_t length, const uint32_t *src, const uint32_t shift);
