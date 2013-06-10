@@ -14,21 +14,12 @@ using namespace std;
 /**
  *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
  */
-void print_bits(ofstream *output_target, const uint32_t number) {
+void print_bits(ofstream *output_target, const mpz_int number) {
     uint32_t pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
         if (number & pos) *output_target << "1";
         else *output_target << "0";
         pos >>= 1;
-    }
-}
-
-/**
- * Print out an array of bits
- */
-void print_bit_array(ofstream *output_target, const uint32_t *bit_array, const uint32_t bit_array_length) {
-    for (uint32_t i = 0; i < bit_array_length; i++) {
-        print_bits(output_target, bit_array[i]);
     }
 }
 
@@ -110,7 +101,6 @@ void print_bit_array_color(ofstream *output_target, const uint32_t *bit_array, u
 }
 
 void print_subset_calculation(ofstream *output_target, const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
-
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;
 
