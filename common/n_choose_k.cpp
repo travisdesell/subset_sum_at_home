@@ -6,6 +6,8 @@
 #include <boost/multiprecision/gmp.hpp>
 
 using boost::multiprecision::mpz_int;
+using std::cout;
+using std::endl;
 
 mpz_int **n_choose_k_lookup_table;
 
@@ -18,8 +20,8 @@ void n_choose_k_init(uint32_t max_n, uint32_t max_k) {
     for (uint32_t i = 0; i < max_n; i++) {
         n_choose_k_lookup_table[i] = new mpz_int[max_k];
 
-        for (uint32_t j = 0; j <= max_k; j++) {
-            n_choose_k_lookup_table[i][j] = 0;
+        for (uint32_t j = 0; j < max_k; j++) {
+            n_choose_k_lookup_table[i][j] = mpz_int(0);
         }
     }
 
