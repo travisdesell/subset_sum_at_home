@@ -18,7 +18,7 @@ void n_choose_k_init(uint32_t max_n, uint32_t max_k) {
     for (uint32_t i = 0; i < max_n; i++) {
         n_choose_k_lookup_table[i] = new mpz_int[max_k];
 
-        for (uint32_t j = 0; j <= max_k; j++) {
+        for (uint32_t j = 0; j < max_k; j++) {
             n_choose_k_lookup_table[i][j] = 0;
         }
     }
