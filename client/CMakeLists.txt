@@ -2,12 +2,12 @@ include_directories(${BOINC_INCLUDE_DIR})
 include_directories(${BOINC_INCLUDE_DIR}/api)
 include_directories(${BOINC_INCLUDE_DIR}/lib)
 
-find_package(CUDA)
+#find_package(CUDA)
 find_package(BOINC)
 
-include(FindCUDA)
+#include(FindCUDA)
 
-message(STATUS "CUDA DIR: ${CUDA_SDK_ROOT_DIR}")
+#message(STATUS "CUDA DIR: ${CUDA_SDK_ROOT_DIR}")
 
 link_libraries("-L'${CUDA_SDK_ROOT_DIR}/lib' -lcutil_x86_64")
 

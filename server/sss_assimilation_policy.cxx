@@ -176,7 +176,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         for (uint64_t i = 0; i < failed_sets.size(); i++) {
             query.str("");
             query.clear();
-            query << "INSERT INTO sss_results SET "
+            query << "REPLACE INTO sss_results_2 SET "
                 << "id = " << id << ", "
                 << "failed_set = '" << failed_sets[i] << "'";
 
@@ -184,7 +184,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
             mysql_query(conn, query.str().c_str());
 
             if (mysql_errno(conn) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_results with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+                log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_results_2 with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
                 exit(1);
             }
         }

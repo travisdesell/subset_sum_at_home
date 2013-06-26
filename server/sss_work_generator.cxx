@@ -53,7 +53,7 @@
 
 #include "../common/n_choose_k.hpp"
 
-#define CUSHION 100
+#define CUSHION 500
     // maintain at least this many unsent results
 #define REPLICATION_FACTOR  1
 
@@ -66,7 +66,8 @@ DB_APP app;
 int start_time;
 int seqno;
 
-const uint64_t SETS_PER_WORKUNIT = 2203961430;
+//const uint64_t SETS_PER_WORKUNIT = 2203961430;
+const uint64_t SETS_PER_WORKUNIT = 2203960;
 
 using namespace std;
 using boost::multiprecision::mpz_int;
@@ -83,9 +84,11 @@ int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mp
     const char* infiles[0];
     int retval;
 
+    int current_time = time(NULL);
+
     // make a unique name (for the job and its input file)
     ostringstream oss;
-    oss << app_name << "_" << max_set_value << "_" << set_size << "_" << starting_set;
+    oss << app_name << "_" << max_set_value << "_" << set_size << "_" << starting_set << "_" << current_time;
     sprintf(name, "%s", oss.str().c_str());
 //    fprintf(stdout, "name: '%s'\n", name);
 
@@ -137,8 +140,6 @@ int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mp
 
     sprintf(additional_xml, "<credit>%.3lf</credit>", credit);
 
-    return 1;
-
     return create_work(
         wu,
         in_template,
@@ -161,6 +162,8 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     check_stop_daemons();   //This checks to see if there is a stop in place, if there is it will exit the work generator.
 
+    cout << "checked stop daemons" << endl;
+
 	//Aaron Comment: retval tells us if the count_unsent_results
 	//function is working properly. If it is, then it's value
 	//should be 0. Anything creater than 0 and the program exits.
@@ -181,6 +184,8 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     cout << "current set: " << current_set << ", total sets: " << total_sets << endl;
 
     while (current_set < total_sets) {
+        if (total_generated >= 2000) break;  //don't generate too many yet
+
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
             cout << "making job: " << max_set_value << " choose " << set_size << ", current set: " << current_set << ", sets to compute: " << SETS_PER_WORKUNIT << endl;
             make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
@@ -419,6 +424,8 @@ int main(int argc, char** argv) {
     seqno = 0;
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
+
+    n_choose_k_init(100, 50);   //this should be more than enough
 
     main_loop();
 }

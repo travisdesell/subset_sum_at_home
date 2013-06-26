@@ -73,6 +73,8 @@ void main_loop(MYSQL *conn) {
     uint64_t slices, failed_set_count;
     mpz_int failed_set;
 
+    n_choose_k_init(100,50);
+
     while (1) {
         check_stop_daemons();
 
@@ -106,7 +108,7 @@ void main_loop(MYSQL *conn) {
 
             query.str("");
             query.clear();
-            query << "SELECT failed_set FROM sss_results WHERE id = " << id << " ORDER BY failed_set";
+            query << "SELECT failed_set FROM sss_results_2 WHERE id = " << id << " ORDER BY failed_set";
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
             mysql_query(conn, query.str().c_str());
@@ -183,7 +185,7 @@ void main_loop(MYSQL *conn) {
             mpz_int pass = expected_total - fail;
 
             if (mysql_errno(conn) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: getting failed_sets from sss_results row: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+                log_messages.printf(MSG_CRITICAL, "ERROR: getting failed_sets from sss_results_2 row: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
                 exit(1);
             }   
 
