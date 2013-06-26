@@ -406,20 +406,21 @@ int main(int argc, char** argv) {
         /**
          *  Need to checkpoint if we found a failed set, otherwise the output file might contain duplicates
          */
-        if (!success || (iteration % 10000) == 0) {
+        if (!success || (iteration % 1000) == 0) {
             double progress;
             if (doing_slice) {
-                progress = mpz_int_to_double(iteration * 100 / subsets_to_calculate) / 100.0;
+                progress = mpz_int_to_double(iteration) / mpz_int_to_double(subsets_to_calculate);
             } else {
-                progress = mpz_int_to_double(iteration * 100 / expected_total) / 100.0;
+                progress = mpz_int_to_double(iteration) / mpz_int_to_double(expected_total);
            }
+//            cout << "progress: " << progress << endl;
 #ifdef _BOINC_
             boinc_fraction_done(progress);
 #endif
 //            printf("\r%lf", progress);
 //
-            if (!success || (iteration % 60000000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
-//                cerr << "\n*****Checkpointing! *****" << endl;
+            if (!success || (iteration % 60000) == 0) {      //this works out to be a checkpoint every 10 seconds or so
+//                cout << "\n*****Checkpointing! *****" << endl;
 //                cerr << "CHECKSUM: " << checksum << endl;
 
 //                cout << "[";
