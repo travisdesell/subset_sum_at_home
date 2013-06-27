@@ -468,6 +468,7 @@ int main(int argc, char** argv) {
 
 #ifdef _BOINC_
     *output_target << "</failed_subsets>" << endl;
+    *output_target << "<version>" << VERSION << "</version>" << endl;
     *output_target << "<extra_info>" << endl;
 
     cerr << "</failed_subsets>" << endl;
