@@ -471,6 +471,7 @@ int main(int argc, char** argv) {
     *output_target << "<extra_info>" << endl;
 
     cerr << "</failed_subsets>" << endl;
+    cerr << "<version>" << VERSION << "</version>" << endl;
     cerr << "<extra_info>" << endl;
 #endif
 
