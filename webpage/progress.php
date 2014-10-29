@@ -10,7 +10,7 @@ require_once($cwd[__FILE__] . "/../../citizen_science_grid/footer.php");
 require_once($cwd[__FILE__] . "/../../citizen_science_grid/my_query.php");
 
 print_header("SubsetSum@Home: Progress", "", "subset_sum");
-print_navbar("Projects: SubsetSum@Home", "SubsetSum@Home");
+print_navbar("Projects: SubsetSum@Home", "SubsetSum@Home", "..");
 
 
 echo "

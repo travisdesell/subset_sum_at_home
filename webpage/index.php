@@ -44,7 +44,7 @@ echo $m->render($projects_template, $carousel_info);
 
 echo "
             <div class='btn-group btn-group-justified' style='margin-top:20px;'>
-                <a class='btn btn-primary' role='button' href='../csg/instructions.php'><h4>Volunteer Your Computer</h4></a>
+                <a class='btn btn-primary' role='button' href='../instructions.php'><h4>Volunteer Your Computer</h4></a>
             </div>
 
             </div> <!-- col-sm-12 -->
