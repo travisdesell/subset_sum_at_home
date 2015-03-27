@@ -38,8 +38,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${UNDVC_COMMON_INCLUDE_DIR}/cmake/Mo
 
 find_package(BOINC)
 
-add_subdirectory(client)
-
 #
 #   Just in case we need Boost
 #
