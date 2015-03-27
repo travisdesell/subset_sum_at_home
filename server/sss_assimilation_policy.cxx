@@ -33,16 +33,12 @@
 #include "mysql.h"
 #include "boinc_db.h"
 
-#include "../common/big_int.hpp"
-
 #include "undvc_common/file_io.hxx"
 #include "undvc_common/parse_xml.hxx"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/multiprecision/gmp.hpp>
 
 using namespace std;
-using boost::multiprecision::mpz_int;
 
 //returns 0 on sucess
 int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canonical_result) {
@@ -53,16 +49,16 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
 
     //Parse the max_value, subset_size and starting_subset values from the workunit name
     uint32_t max_value, subset_size;
-    mpz_int starting_subset;
+    uint64_t starting_subset;
 
     vector<std::string> split_string;
     boost::split(split_string, wu.name, boost::is_any_of("_"));
 
     max_value       = atol( split_string[2].c_str() );
     subset_size     = atol( split_string[3].c_str() );
-    starting_subset = mpz_int( split_string[4] );
+    starting_subset = atol( split_string[4].c_str() );
 
-    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %s\n", max_value, subset_size, starting_subset.to_decimal_string().c_str());
+    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %lu\n", max_value, subset_size, starting_subset);
 
     uint32_t id;        //get the run id from the max_value and subset size
 
@@ -102,7 +98,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         query.clear();
         query << "INSERT INTO sss_errors SET "
             << "id = " << id << ", "
-            << "starting_subset = " << starting_subset.to_decimal_string();
+            << "starting_subset = " << starting_subset;
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
         mysql_query(conn, query.str().c_str());
@@ -155,11 +151,11 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         }
 
         uint32_t checksum;
-        vector<mpz_int> failed_sets;
+        vector<uint64_t> failed_sets;
 
         try {
             checksum = parse_xml<uint32_t>(file_contents, "checksum");
-            parse_xml_vector<mpz_int>(file_contents, "failed_subsets", failed_sets);
+            parse_xml_vector<uint64_t>(file_contents, "failed_subsets", failed_sets);
         } catch (string err_msg) {
             log_messages.printf(MSG_CRITICAL, "Error parsing file contents:\n%s\n\n", file_contents.c_str());
             log_messages.printf(MSG_CRITICAL, "Threw exception:\n%s\n", err_msg.c_str());
@@ -175,7 +171,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
             query.clear();
             query << "INSERT INTO sss_results SET "
                 << "id = " << id << ", "
-                << "failed_set = " << failed_sets[i].to_decimal_string();
+                << "failed_set = " << failed_sets[i];
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
             mysql_query(conn, query.str().c_str());
@@ -204,4 +200,3 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
     //Don't need to do anything, when the result is validated it gets inserted into the database directly
     return 0;
 }
-
