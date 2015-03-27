@@ -49,11 +49,10 @@
 
 #include "mysql.h"
 
-#include <boost/multiprecision/gmp.hpp>
-
+#include "../common/big_int.hpp"
 #include "../common/n_choose_k.hpp"
 
-#define CUSHION 500
+#define CUSHION 100
     // maintain at least this many unsent results
 #define REPLICATION_FACTOR  1
 
@@ -66,16 +65,14 @@ DB_APP app;
 int start_time;
 int seqno;
 
-//const uint64_t SETS_PER_WORKUNIT = 2203961430;
-const uint64_t SETS_PER_WORKUNIT = 2203960;
+const uint64_t SETS_PER_WORKUNIT = 2203961430;
 
 using namespace std;
-using boost::multiprecision::mpz_int;
 
 
 // create one new job
 //
-int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mpz_int sets_to_evaluate) {
+int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, BigInt sets_to_evaluate) {
     DB_WORKUNIT wu;
 
     char name[256], path[256];
@@ -84,14 +81,11 @@ int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mp
     const char* infiles[0];
     int retval;
 
-    int current_time = time(NULL);
-
     // make a unique name (for the job and its input file)
-    ostringstream oss;
-    oss << app_name << "_" << max_set_value << "_" << set_size << "_" << starting_set << "_" << current_time;
-    sprintf(name, "%s", oss.str().c_str());
+    //
+    sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
 //    fprintf(stdout, "name: '%s'\n", name);
-
+/
     // Create the input file.
     // Put it at the right place in the download dir hierarchy
     //
@@ -128,17 +122,15 @@ int make_job(uint32_t max_set_value, uint32_t set_size, mpz_int starting_set, mp
     //
     sprintf(path, "templates/%s", out_template_file);
 
-    oss.clear();
-    oss.str("");    //reset the ostringstream
-    oss << " " << max_set_value << " " << set_size << " " << starting_set << " " << sets_to_evaluate;
-    sprintf(command_line, "%s", oss.str().c_str());
-
+    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set.to_decimal_string().c_str(), sets_to_evaluate.to_decimal_string().c_str());
 //    fprintf(stdout, "command line: '%s'\n", command_line);
 
 //    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
 //    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
     sprintf(additional_xml, "<credit>%.3lf</credit>", credit);
+
+    return 1;
 
     return create_work(
         wu,
@@ -162,8 +154,6 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     check_stop_daemons();   //This checks to see if there is a stop in place, if there is it will exit the work generator.
 
-    cout << "checked stop daemons" << endl;
-
 	//Aaron Comment: retval tells us if the count_unsent_results
 	//function is working properly. If it is, then it's value
 	//should be 0. Anything creater than 0 and the program exits.
@@ -177,15 +167,13 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    mpz_int total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    mpz_int current_set = 0;
-    mpz_int total_generated = 0;
+    BigInt total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+    BigInt current_set = 0;
+    uint64_t total_generated = 0;
 
     cout << "current set: " << current_set << ", total sets: " << total_sets << endl;
 
     while (current_set < total_sets) {
-        if (total_generated >= 2000) break;  //don't generate too many yet
-
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
             cout << "making job: " << max_set_value << " choose " << set_size << ", current set: " << current_set << ", sets to compute: " << SETS_PER_WORKUNIT << endl;
             make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
@@ -220,9 +208,7 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     }
 
 
-    ostringstream oss;
-    oss << total_generated;
-    log_messages.printf(MSG_DEBUG, "workunits generated: %s\n", oss.str().c_str());
+    log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
 }
 
 void main_loop() {
@@ -424,8 +410,6 @@ int main(int argc, char** argv) {
     seqno = 0;
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
-
-    n_choose_k_init(100, 50);   //this should be more than enough
 
     main_loop();
 }

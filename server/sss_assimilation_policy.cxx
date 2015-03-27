@@ -33,7 +33,7 @@
 #include "mysql.h"
 #include "boinc_db.h"
 
-#include "../common/binary_output.hpp"
+#include "../common/big_int.hpp"
 
 #include "undvc_common/file_io.hxx"
 #include "undvc_common/parse_xml.hxx"
@@ -62,10 +62,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
     subset_size     = atol( split_string[3].c_str() );
     starting_subset = mpz_int( split_string[4] );
 
-    ostringstream oss;
-    oss << starting_subset;
-
-    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %s\n", max_value, subset_size, oss.str().c_str());
+    log_messages.printf(MSG_NORMAL, "parsed max_value: %u, subset_size: %u, and starting_subset %s\n", max_value, subset_size, starting_subset.to_decimal_string().c_str());
 
     uint32_t id;        //get the run id from the max_value and subset size
 
@@ -105,7 +102,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         query.clear();
         query << "INSERT INTO sss_errors SET "
             << "id = " << id << ", "
-            << "starting_subset = '" << starting_subset << "'";
+            << "starting_subset = " << starting_subset.to_decimal_string();
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
         mysql_query(conn, query.str().c_str());
@@ -176,15 +173,15 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         for (uint64_t i = 0; i < failed_sets.size(); i++) {
             query.str("");
             query.clear();
-            query << "REPLACE INTO sss_results_2 SET "
+            query << "INSERT INTO sss_results SET "
                 << "id = " << id << ", "
-                << "failed_set = '" << failed_sets[i] << "'";
+                << "failed_set = " << failed_sets[i].to_decimal_string();
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
             mysql_query(conn, query.str().c_str());
 
             if (mysql_errno(conn) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_results_2 with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+                log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_results with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
                 exit(1);
             }
         }

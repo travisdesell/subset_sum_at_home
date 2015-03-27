@@ -12,7 +12,7 @@ require_once($cwd[__FILE__] . "/../../citizen_science_grid/my_query.php");
 require_once($cwd[__FILE__] . "/../../citizen_science_grid/csg_uotd.php");
 
 print_header("SubsetSum@Home", "", "subset_sum");
-print_navbar("Projects: SubsetSum@Home", "SubsetSum@Home");
+print_navbar("Projects: SubsetSum@Home", "SubsetSum@Home", "..");
 
 echo "
     <div class='container'>

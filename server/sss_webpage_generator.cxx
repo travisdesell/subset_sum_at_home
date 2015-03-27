@@ -49,8 +49,8 @@
 
 #include "mysql.h"
 
-#include <boost/multiprecision/gmp.hpp>
-
+#include "../common/big_int.hpp"
+#include "../common/bit_logic.hpp"
 #include "../common/generate_subsets.hpp"
 #include "../common/binary_output.hpp"
 #include "../common/n_choose_k.hpp"
@@ -62,8 +62,15 @@ DB_APP app;
 int start_time;
 int seqno;
 
+//double max_digits;                  //extern
+//double max_set_digits;              //extern
+
+unsigned long int max_sums_length;  //extern
+uint32_t *sums;                 //extern
+uint32_t *new_sums;             //extern
+
+
 using namespace std;
-using boost::multiprecision::mpz_int;
 
 void main_loop(MYSQL *conn) {
     /**
@@ -71,9 +78,7 @@ void main_loop(MYSQL *conn) {
      */
     uint32_t id, max_set_value, subset_size;
     uint64_t slices, failed_set_count;
-    mpz_int failed_set;
-
-    n_choose_k_init(100,50);
+    BigInt failed_set;
 
     while (1) {
         check_stop_daemons();
@@ -108,7 +113,7 @@ void main_loop(MYSQL *conn) {
 
             query.str("");
             query.clear();
-            query << "SELECT failed_set FROM sss_results_2 WHERE id = " << id << " ORDER BY failed_set";
+            query << "SELECT failed_set FROM sss_results WHERE id = " << id << " ORDER BY failed_set";
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
             mysql_query(conn, query.str().c_str());
@@ -120,11 +125,24 @@ void main_loop(MYSQL *conn) {
             }   
 
 
-            mpz_int expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
+            /**
+             *  Calculate the maximum set length (in bits) and some other values so we can use this for printing out the values cleanly.
+             */
+            uint32_t *max_set = new uint32_t[subset_size];
+            for (uint32_t i = 0; i < subset_size; i++) max_set[subset_size - i - 1] = max_set_value - i;
+            for (uint32_t i = 0; i < subset_size; i++) max_sums_length += max_set[i];
+
+            //    sums_length /= 2;
+            max_sums_length /= ELEMENT_SIZE;
+            max_sums_length++;
+
+            delete [] max_set;
+
+            BigInt expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
 //            max_digits = ceil(log10(expected_total));
 
-            mpz_int sums;
-            mpz_int new_sums;
+            sums = new uint32_t[max_sums_length];
+            new_sums = new uint32_t[max_sums_length];
             uint32_t *subset = new uint32_t[subset_size];
 
 
@@ -170,10 +188,10 @@ void main_loop(MYSQL *conn) {
             *output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << "<br>" << endl;
 
             MYSQL_ROW failed_sets_row;
-            mpz_int fail = mpz_int((uint32_t)0);
+            BigInt fail = BigInt((uint32_t)0);
 
             while ((failed_sets_row = mysql_fetch_row(failed_sets_result)) != NULL) {
-                failed_set = mpz_int(failed_sets_row[0]);
+                failed_set = BigInt(failed_sets_row[0]);
 
                 /**
                  *  Write the line for that failed set to the html file.
@@ -182,17 +200,19 @@ void main_loop(MYSQL *conn) {
                 print_subset_calculation(output_target, failed_set, subset, subset_size, false);
                 fail++;
             }
-            mpz_int pass = expected_total - fail;
+            BigInt pass = expected_total - fail;
 
             if (mysql_errno(conn) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: getting failed_sets from sss_results_2 row: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+                log_messages.printf(MSG_CRITICAL, "ERROR: getting failed_sets from sss_results row: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
                 exit(1);
             }   
 
             delete subset;
+            delete sums;
+            delete new_sums;
             mysql_free_result(failed_sets_result);
 
-            *output_target << expected_total << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << mpz_int_to_double(pass) / mpz_int_to_double(pass + fail) << " success rate." << endl;
+            *output_target << expected_total.to_decimal_string() << " total sets, " << pass.to_decimal_string() << " sets passed, " << fail.to_decimal_string() << " sets failed, " << (pass/ (pass + fail)).to_decimal_string() << " success rate." << endl;
             *output_target << "</tt>" << endl;
             *output_target << "<br>" << endl << endl;
             *output_target << "<hr width=\"100%%\">" << endl;

@@ -32,8 +32,35 @@ set(PLATFORM 64)
 #This may need to be updated or Linux/Windows
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /opt/local/lib)
 
+#This will look for the undvc_common library, which should be in the
+#same directory as this project. It should be compiled in the ../undvc_common/build
+#directory
+
+FIND_PATH(UNDVC_COMMON_INCLUDE_DIR file_io.hxx
+    ../undvc_common         #add addiitonal paths here if undvc_common is in a different directory
+)
+
+MESSAGE(STATUS "UNDVC_COMMON include directory: ${UNDVC_COMMON_INCLUDE_DIR}")
+
+FIND_LIBRARY(UNDVC_COMMON_LIBRARY
+    NAMES undvc_common
+    PATHS ../undvc_common/build         #add additional paths here if undvc_common is in a different directory
+                                        #or if it has been build in a different directory
+    PATH_SUFFIXES
+    lib
+)
+MESSAGE(STATUS
+    "UNDVC_COMMON
+    library:
+    ${UNDVC_COMMON_LIBRARY}"
+)
+
+include_directories(${UNDVC_COMMON_INCLUDE_DIR})
+
+
+
 #this adds the undvc_common FindX.cmake modules to look for BOINC and OpenCV
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/undvc_common/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/../undvc_common/cmake/Modules/")
 
 #
 #   Just in case we need Boost
@@ -51,7 +78,7 @@ include_directories(/home/tdesell/boost_1_53_0/)
 
 find_package(BOINC)
 
-add_subdirectory(undvc_common)
+#add_subdirectory(undvc_common)
 add_subdirectory(common)
 #add_subdirectory(client)
 
@@ -59,10 +86,10 @@ find_package(MySQL)
 find_package(Boost REQUIRED COMPONENTS system)
 
 
-if (BOINC_FOUND AND MYSQL_FOUND)
+if (BOINC_SERVER_FOUND AND MYSQL_FOUND)
     link_directories(${Boost_LIBRARY_DIRS})
     add_subdirectory(server)
-else (BOINC_FOUND AND MYSQL_FOUND)
-    message(STATUS "Either BOINC libraries (found = ${BOINC_FOUND}) or MYSQL libraries (found = ${MYSQL_FOUND}) missing, not compiling server subdirectory.")
-endif (BOINC_FOUND AND MYSQL_FOUND)
+else (BOINC_SERVER_FOUND AND MYSQL_FOUND)
+    message(STATUS "Either BOINC libraries (found = ${BOINC_SERVER_FOUND}) or MYSQL libraries (found = ${MYSQL_FOUND}) missing, not compiling server subdirectory.")
+endif (BOINC_SERVER_FOUND AND MYSQL_FOUND)
 
