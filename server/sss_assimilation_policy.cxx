@@ -133,7 +133,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         }
 
         if (files.size() > 1) {
-            log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had more than one output file: %u\n", canonical_result.id, canonical_result.name, files.size());
+            log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had more than one output file: %zu\n", canonical_result.id, canonical_result.name, files.size());
             for (uint32_t i = 0; i < files.size(); i++) {
                 log_messages.printf(MSG_CRITICAL, "    %s\n", files[i].name.c_str());
             }

@@ -33,6 +33,8 @@
 #include <cstring>
 #include <sstream>
 #include <cmath>
+#include <fstream>
+#include <limits>
 
 #include "boinc_db.h"
 #include "error_numbers.h"
@@ -66,6 +68,41 @@ int seqno;
 const uint64_t SETS_PER_WORKUNIT = 2203961430;
 
 using namespace std;
+
+#define mysql_sss_query(query) __mysql_check (sss_db_conn, query, __FILE__, __LINE__)
+
+MYSQL *sss_db_conn = NULL;
+
+void __mysql_check(MYSQL *conn, string query, const char *file, const int line) {
+    mysql_query(conn, query.c_str());
+
+    if (mysql_errno(conn) != 0) {
+        ostringstream ex_msg;
+        ex_msg << "ERROR in MySQL query: '" << query.c_str() << "'. Error: " << mysql_errno(conn) << " -- '" << mysql_error(conn) << "'. Thrown on " << file << ":" << line;
+        log_messages.printf(MSG_CRITICAL, "%s\n", ex_msg.str().c_str());
+        exit(1);
+    }   
+}
+
+void initialize_sss_database() {
+    sss_db_conn = mysql_init(NULL);
+
+    //shoud get database info from a file
+    string db_host, db_name, db_password, db_user;
+    ifstream db_info_file("../sss_db_info");
+
+    db_info_file >> db_host >> db_name >> db_user >> db_password;
+    db_info_file.close();
+
+    log_messages.printf(MSG_NORMAL,"parsed db info, host: '%s', name: '%s', user: '%s', pass: '%s'\n", db_host.c_str(), db_name.c_str(), db_user.c_str(), db_password.c_str());
+
+    if (mysql_real_connect(sss_db_conn, db_host.c_str(), db_user.c_str(), db_password.c_str(), db_name.c_str(), 0, NULL, 0) == NULL) {
+        log_messages.printf(MSG_CRITICAL, "Error connecting to database: %d, '%s'\n", mysql_errno(sss_db_conn), mysql_error(sss_db_conn));
+        exit(1);
+    }   
+}
+
+
 
 
 // create one new job
@@ -153,28 +190,38 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 	//should be 0. Anything creater than 0 and the program exits.
     retval = count_unsent_results(unsent_results, 0);
     if (retval) {
-        log_messages.printf(MSG_CRITICAL,
-            "count_unsent_jobs() failed: %s\n", boincerror(retval)
-        );
+        log_messages.printf(MSG_CRITICAL, "count_unsent_jobs() failed: %s\n", boincerror(retval));
         exit(retval);
     }
 
     //divide up the sets into mostly equal sized workunits
 
+    max_set_value = 60;
+    set_size = 30;
+
+    log_messages.printf(MSG_NORMAL, "max_set_value: %u\n", max_set_value);
+    log_messages.printf(MSG_NORMAL, "set size:      %u\n", set_size);
+
     uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
     uint64_t current_set = 0;
     uint64_t total_generated = 0;
 
+    log_messages.printf(MSG_NORMAL, "current_set: %lu, total_sets: %lu\n", current_set, total_sets);
     while (current_set < total_sets) {
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
-            make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
+            log_messages.printf(MSG_NORMAL, "generating workunit %lu with starting set %lu and %lu SETS PER WORKUNIT\n", total_generated, current_set, SETS_PER_WORKUNIT);
+            //make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
         } else {
-            make_job(max_set_value, set_size, current_set, total_sets - current_set);
+            log_messages.printf(MSG_NORMAL, "generating workunit %lu with starting set %lu and %lu SETS PER WORKUNIT\n", total_generated, current_set, total_sets - current_set);
+            //make_job(max_set_value, set_size, current_set, total_sets - current_set);
         }
         current_set += SETS_PER_WORKUNIT;
 
         total_generated++;
     }
+
+    log_messages.printf(MSG_NORMAL, "max uint32_t: %lu\n", numeric_limits<uint32_t>::max());
+    log_messages.printf(MSG_NORMAL, "max uint64_t: %lu\n", numeric_limits<uint64_t>::max());
 
     /**
      *  Update create an entry in sss_runs table for this M and N
@@ -187,15 +234,10 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
           << "completed = 0, errors = 0";
 
     log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-    mysql_query(boinc_db.mysql, query.str().c_str()); 
-
-    if (mysql_errno(boinc_db.mysql) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
-        exit(1);
-    }
-
+    //mysql_sss_query(query.str().c_str()); 
 
     log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
+    exit(1);
 }
 
 void main_loop() {
@@ -210,19 +252,18 @@ void main_loop() {
     query << "SELECT current_max_value, current_subset_size FROM sss_progress";
 
     log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-    mysql_query(boinc_db.mysql, query.str().c_str());
-    MYSQL_RES *result = mysql_store_result(boinc_db.mysql);
-
-    if (mysql_errno(boinc_db.mysql) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+    mysql_sss_query(query.str().c_str());
+    MYSQL_RES *result = mysql_store_result(sss_db_conn);
+    if (mysql_errno(sss_db_conn) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
         exit(1);
     }   
 
     MYSQL_ROW row = mysql_fetch_row(result);
-    if (mysql_errno(boinc_db.mysql) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+    if (mysql_errno(sss_db_conn) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progress: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
     } else if (row == NULL) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progres: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting sss_progres: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
         log_messages.printf(MSG_CRITICAL, "returned NULL for rows.\n");
         exit(1);
     }   
@@ -278,13 +319,7 @@ void main_loop() {
                 << "current_subset_size = " << subset_size;
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-            mysql_query(boinc_db.mysql, query.str().c_str()); 
-
-            if (mysql_errno(boinc_db.mysql) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: could not update sss_progress with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(boinc_db.mysql), mysql_error(boinc_db.mysql), __FILE__, __LINE__);
-                exit(1);
-            }   
-
+            //mysql_sss_query(query.str().c_str()); 
 
             // Now sleep for a few seconds to let the transitioner
             // create instances for the jobs we just created.
@@ -395,5 +430,7 @@ int main(int argc, char** argv) {
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
 
+    n_choose_k_init();
+    initialize_sss_database();
     main_loop();
 }
