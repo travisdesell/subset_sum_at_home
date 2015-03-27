@@ -21,13 +21,14 @@ void n_choose_k_init() {
 
     for (int i = 0; i < 68; i++) {
         n_choose_k_lookup_table[i][0] = 1;
-        cerr << n_choose_k_lookup_table[i][0];
+        //cerr << n_choose_k_lookup_table[i][0];
+
         for (int j = 1; j <= i && j <= 34; j++) {
             n_choose_k_lookup_table[i][j] = n_choose_k_lookup_table[i-1][j] + n_choose_k_lookup_table[i-1][j-1];
 
-            cerr << " " << n_choose_k_lookup_table[i][j];
+            //cerr << " " << n_choose_k_lookup_table[i][j];
         }
-        cerr << endl;
+        //cerr << endl;
     }
 }
 
