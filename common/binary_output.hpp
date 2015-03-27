@@ -4,35 +4,14 @@
 #include "stdint.h"
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <vector>
 
-#include "../undvc_common/parse_xml.hxx"
+using namespace std;
 
-#include <boost/multiprecision/gmp.hpp>
+void print_bits(ofstream *output_target, const uint32_t number);
+void print_bit_array(ofstream *output_target, const uint32_t *bit_array, const uint32_t bit_array_length);
+void print_subset(ofstream *output_target, const uint32_t *subset, const uint32_t subset_size);
+void print_bit_array_color(ofstream *output_target, const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max);
 
-using std::string;
-using std::ofstream;
-using std::ostream;
-using std::vector;
+void print_subset_calculation(ofstream *output_target, const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success);
 
-using boost::multiprecision::mpz_int;
-
-
-double mpz_int_to_double(mpz_int value);
-uint32_t mpz_int_to_uint32_t(mpz_int value);
-string mpz_int_to_binary_string(mpz_int x);
-
-template <>
-void string_to_vector<mpz_int>(string s, vector<mpz_int> &v);
-
-template <>
-void parse_xml_vector<mpz_int>(string xml, const char tag[], vector<mpz_int> &result) throw (string);
-
-void initialize_print_widths(mpz_int max_iteration, uint32_t max_set_value, uint32_t subset_size);
-
-void print_subset_calculation(ostream *output_target, mpz_int iteration, uint32_t *subset, const uint32_t subset_size, const bool success);
-
-void print_html_header(ostream *output_target, uint32_t max_set_value, uint32_t subset_size);
-void print_html_footer(ostream *output_target);
 #endif

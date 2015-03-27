@@ -49,7 +49,6 @@
 
 #include "mysql.h"
 
-#include "../common/big_int.hpp"
 #include "../common/bit_logic.hpp"
 #include "../common/generate_subsets.hpp"
 #include "../common/binary_output.hpp"
@@ -62,8 +61,8 @@ DB_APP app;
 int start_time;
 int seqno;
 
-//double max_digits;                  //extern
-//double max_set_digits;              //extern
+double max_digits;                  //extern
+double max_set_digits;              //extern
 
 unsigned long int max_sums_length;  //extern
 uint32_t *sums;                 //extern
@@ -77,8 +76,7 @@ void main_loop(MYSQL *conn) {
      *  Get max_set_value and subset_size from sss_progress table
      */
     uint32_t id, max_set_value, subset_size;
-    uint64_t slices, failed_set_count;
-    BigInt failed_set;
+    uint64_t slices, failed_set_count, failed_set;
 
     while (1) {
         check_stop_daemons();
@@ -138,8 +136,8 @@ void main_loop(MYSQL *conn) {
 
             delete [] max_set;
 
-            BigInt expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
-//            max_digits = ceil(log10(expected_total));
+            uint64_t expected_total = n_choose_k(max_set_value - 1, subset_size - 1);
+            max_digits = ceil(log10(expected_total));
 
             sums = new uint32_t[max_sums_length];
             new_sums = new uint32_t[max_sums_length];
@@ -188,10 +186,9 @@ void main_loop(MYSQL *conn) {
             *output_target << "max_set_value: " << max_set_value << ", subset_size: " << subset_size << "<br>" << endl;
 
             MYSQL_ROW failed_sets_row;
-            BigInt fail = BigInt((uint32_t)0);
-
+            uint64_t fail = 0;
             while ((failed_sets_row = mysql_fetch_row(failed_sets_result)) != NULL) {
-                failed_set = BigInt(failed_sets_row[0]);
+                failed_set = atol(failed_sets_row[0]);
 
                 /**
                  *  Write the line for that failed set to the html file.
@@ -200,7 +197,7 @@ void main_loop(MYSQL *conn) {
                 print_subset_calculation(output_target, failed_set, subset, subset_size, false);
                 fail++;
             }
-            BigInt pass = expected_total - fail;
+            uint64_t pass = expected_total - fail;
 
             if (mysql_errno(conn) != 0) {
                 log_messages.printf(MSG_CRITICAL, "ERROR: getting failed_sets from sss_results row: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
@@ -212,7 +209,7 @@ void main_loop(MYSQL *conn) {
             delete new_sums;
             mysql_free_result(failed_sets_result);
 
-            *output_target << expected_total.to_decimal_string() << " total sets, " << pass.to_decimal_string() << " sets passed, " << fail.to_decimal_string() << " sets failed, " << (pass/ (pass + fail)).to_decimal_string() << " success rate." << endl;
+            *output_target << expected_total << " total sets, " << pass << " sets passed, " << fail << " sets failed, " << ((double)pass/ ((double)pass + (double)fail)) << " success rate." << endl;
             *output_target << "</tt>" << endl;
             *output_target << "<br>" << endl << endl;
             *output_target << "<hr width=\"100%%\">" << endl;

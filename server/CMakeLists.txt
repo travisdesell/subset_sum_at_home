@@ -1,7 +1,7 @@
 find_package(MySQL REQUIRED)
 find_package(BOINC REQUIRED)
 
-find_library(gmp REQUIRED)
+#find_library(gmp REQUIRED)
 
 find_path(BOINC_INCLUDE_DIR config.h PATHS /boinc/src/boinc/ /boinc/)
 
@@ -24,14 +24,14 @@ add_executable(sss_validator
     ${BOINC_INCLUDE_DIR}/sched/validate_util2
     sss_validation_policy)
 target_link_libraries(sss_validator ${UNDVC_COMMON_LIBRARY} ${BOINC_SERVER_LIBRARIES}
-    ${MYSQL_LIBRARIES} gmp sss_common boost_system boost_filesystem)
+    ${MYSQL_LIBRARIES} sss_common boost_system boost_filesystem)
 
 add_executable(sss_assimilator
     ${BOINC_INCLUDE_DIR}/sched/assimilator
     ${BOINC_INCLUDE_DIR}/sched/validate_util
     sss_assimilation_policy)
 target_link_libraries(sss_assimilator ${UNDVC_COMMON_LIBRARY} ${BOINC_SERVER_LIBRARIES}
-    ${MYSQL_LIBRARIES} ${Boost_LIBRARIES} gmp sss_common boost_system
+    ${MYSQL_LIBRARIES} ${Boost_LIBRARIES} sss_common boost_system
     boost_filesystem)
 
 #find_package(CURL REQUIRED)
@@ -43,11 +43,11 @@ include_directories(
 
 add_executable(sss_work_generator sss_work_generator)
 target_link_libraries(sss_work_generator sss_common ${UNDVC_COMMON_LIBRARY} 
-    ${BOINC_SERVER_LIBRARIES} ${MYSQL_LIBRARIES} ${OPENSSL_LIBRARIES} gmp sss_common
+    ${BOINC_SERVER_LIBRARIES} ${MYSQL_LIBRARIES} ${OPENSSL_LIBRARIES} sss_common
     boost_system boost_filesystem)
 
 add_definitions( -DHTML_OUTPUT -DENABLE_COLOR)
 add_executable(sss_webpage_generator sss_webpage_generator)
 target_link_libraries(sss_webpage_generator ${UNDVC_COMMON_LIBRARY} ${BOINC_SERVER_LIBRARIES}
-    ${MYSQL_LIBRARIES} gmp sss_common boost_system boost_filesystem)
+    ${MYSQL_LIBRARIES} sss_common boost_system boost_filesystem)
 

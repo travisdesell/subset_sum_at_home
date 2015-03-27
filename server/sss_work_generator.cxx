@@ -33,7 +33,6 @@
 #include <cstring>
 #include <sstream>
 #include <cmath>
-#include <iostream>
 
 #include "boinc_db.h"
 #include "error_numbers.h"
@@ -49,7 +48,6 @@
 
 #include "mysql.h"
 
-#include "../common/big_int.hpp"
 #include "../common/n_choose_k.hpp"
 
 #define CUSHION 100
@@ -72,7 +70,7 @@ using namespace std;
 
 // create one new job
 //
-int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, BigInt sets_to_evaluate) {
+int make_job(uint32_t max_set_value, uint32_t set_size, uint64_t starting_set, uint64_t sets_to_evaluate) {
     DB_WORKUNIT wu;
 
     char name[256], path[256];
@@ -85,7 +83,7 @@ int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, Big
     //
     sprintf(name, "%s_%u_%u_%lu", app_name, max_set_value, set_size, starting_set);
 //    fprintf(stdout, "name: '%s'\n", name);
-/
+
     // Create the input file.
     // Put it at the right place in the download dir hierarchy
     //
@@ -122,15 +120,13 @@ int make_job(uint32_t max_set_value, uint32_t set_size, BigInt starting_set, Big
     //
     sprintf(path, "templates/%s", out_template_file);
 
-    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set.to_decimal_string().c_str(), sets_to_evaluate.to_decimal_string().c_str());
+    sprintf(command_line, " %u %u %lu %lu", max_set_value, set_size, starting_set, sets_to_evaluate);
 //    fprintf(stdout, "command line: '%s'\n", command_line);
 
 //    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
 //    fprintf(stdout, "total sets: %lu, starting_set + sets_to_evaluate: %lu\n", total_sets, starting_set + sets_to_evaluate);
 
     sprintf(additional_xml, "<credit>%.3lf</credit>", credit);
-
-    return 1;
 
     return create_work(
         wu,
@@ -150,8 +146,6 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     int unsent_results;
     int retval;
 
-    cout << "making jobs" << endl;
-
     check_stop_daemons();   //This checks to see if there is a stop in place, if there is it will exit the work generator.
 
 	//Aaron Comment: retval tells us if the count_unsent_results
@@ -167,27 +161,20 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    BigInt total_sets = n_choose_k(max_set_value - 1, set_size - 1);
-    BigInt current_set = 0;
+    uint64_t total_sets = n_choose_k(max_set_value - 1, set_size - 1);
+    uint64_t current_set = 0;
     uint64_t total_generated = 0;
-
-    cout << "current set: " << current_set << ", total sets: " << total_sets << endl;
 
     while (current_set < total_sets) {
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
-            cout << "making job: " << max_set_value << " choose " << set_size << ", current set: " << current_set << ", sets to compute: " << SETS_PER_WORKUNIT << endl;
             make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
         } else {
-            cout << "making job: " << max_set_value << " choose " << set_size << ", current set: " << current_set << ", sets to compute: " << (total_sets - current_set) << endl;
             make_job(max_set_value, set_size, current_set, total_sets - current_set);
         }
         current_set += SETS_PER_WORKUNIT;
 
         total_generated++;
     }
-
-    //quit to not do anything
-    exit(0);
 
     /**
      *  Update create an entry in sss_runs table for this M and N
@@ -243,9 +230,6 @@ void main_loop() {
     max_set_value = atoi(row[0]);
     subset_size = atoi(row[1]);
     mysql_free_result(result);
-
-    cout << "max_set_value: " << max_set_value << endl;
-    cout << "subset_size: " << subset_size << endl;
 
     while (1) {
         check_stop_daemons();

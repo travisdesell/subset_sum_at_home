@@ -3,14 +3,12 @@
 
 #include <stdint.h>
 
-#include <boost/multiprecision/gmp.hpp>
+void n_choose_k_init();
 
-using boost::multiprecision::mpz_int;
-
-void n_choose_k_init(uint32_t max_n, uint32_t max_k);
+uint64_t n_choose_k_new(uint32_t n, uint32_t k);
 
 /**
  *  This only works up 68 choose 34.  After that we need to use a big number library
  */
-mpz_int n_choose_k(uint32_t n, uint32_t k);
+uint64_t n_choose_k(uint32_t n, uint32_t k);
 #endif
