@@ -33,8 +33,9 @@
 #include "mysql.h"
 #include "boinc_db.h"
 
-#include "undvc_common/file_io.hxx"
-#include "undvc_common/parse_xml.hxx"
+//from undvc common
+#include "file_io.hxx"
+#include "parse_xml.hxx"
 
 #include <boost/algorithm/string.hpp>
 

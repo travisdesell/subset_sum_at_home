@@ -34,8 +34,9 @@
 #include <fstream>
 #include <sstream>
 
-#include "undvc_common/parse_xml.hxx"
-#include "undvc_common/file_io.hxx"
+//from undvc_commmon
+#include "parse_xml.hxx"
+#include "file_io.hxx"
 
 using std::string;
 using std::vector;
@@ -135,7 +136,7 @@ int compare_results(
         } else {
             match = false;
             log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
-            exit(1);
+//            exit(1);
         }
     } else {
         match = false;

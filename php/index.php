@@ -10,7 +10,7 @@
 <div class="header">Navigation</div>
 <?php
 require_once("navigation.php");
-require_once("db.inc"); //contains the $user and $pass variables to connect to the database, DO NOT COMMIT THIS TO GITHUB (make sure it stays ignored)
+require_once("/projects/src/subset_sum/db.inc"); //contains the $user and $pass variables to connect to the database, DO NOT COMMIT THIS TO GITHUB (make sure it stays ignored)
 ?>
 </div>
 <table class="description">
