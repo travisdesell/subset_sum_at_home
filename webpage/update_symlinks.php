@@ -42,6 +42,14 @@ $command = "ln -s $cwd/css $target/css";
 shell_exec("rm $target/css");
 shell_exec($command);
 
+$command = "ln -s $cwd/progress $target/progress";
+shell_exec("rm $target/progress");
+shell_exec($command);
+
+$command = "ln -s $cwd/sss_badges $target/sss_badges";
+shell_exec("rm $target/sss_badges");
+shell_exec($command);
+
 $command = "ln -s $cwd/images $target/images";
 shell_exec("rm $target/images");
 shell_exec($command);

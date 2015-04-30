@@ -30,7 +30,7 @@ while($row = $result->fetch_assoc()) {
     echo "<td>" . $row['errors'] . "</td>";
     echo "<td>" . $row['failed_set_count'] . "</td>";
     if ($row['webpage_generated'] == true) {
-        echo "<td><a href=\"../subset_sum/download/set_" . $row['max_value'] . "c" . $row['subset_size'] . ".html\">details</a></td>";
+        echo "<td><a href=\"./progress/set_" . $row['max_value'] . "c" . $row['subset_size'] . ".html\">details</a></td>";
     } else {
         echo "<td></td>";
     }

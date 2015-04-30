@@ -20,6 +20,7 @@
 #include <vector>
 #include <cstdlib>
 #include <string>
+#include <fstream>
 
 #include "config.h"
 #include "util.h"
@@ -41,12 +42,46 @@
 
 using namespace std;
 
+#define mysql_sss_query(query) __mysql_check (sss_db_conn, query, __FILE__, __LINE__)
+
+MYSQL *sss_db_conn = NULL;
+
+void __mysql_check(MYSQL *conn, string query, const char *file, const int line) {
+    mysql_query(conn, query.c_str());
+
+    if (mysql_errno(conn) != 0) {
+        ostringstream ex_msg;
+        ex_msg << "ERROR in MySQL query: '" << query.c_str() << "'. Error: " << mysql_errno(conn) << " -- '" << mysql_error(conn) << "'. Thrown on " << file << ":" << line;
+        log_messages.printf(MSG_CRITICAL, "%s\n", ex_msg.str().c_str());
+        exit(1);
+    }   
+}
+
+void initialize_sss_database() {
+    sss_db_conn = mysql_init(NULL);
+
+    //shoud get database info from a file
+    string db_host, db_name, db_password, db_user;
+    ifstream db_info_file("../sss_db_info");
+
+    db_info_file >> db_host >> db_name >> db_user >> db_password;
+    db_info_file.close();
+
+    log_messages.printf(MSG_NORMAL,"parsed db info, host: '%s', name: '%s', user: '%s', pass: '%s'\n", db_host.c_str(), db_name.c_str(), db_user.c_str(), db_password.c_str());
+
+    if (mysql_real_connect(sss_db_conn, db_host.c_str(), db_user.c_str(), db_password.c_str(), db_name.c_str(), 0, NULL, 0) == NULL) {
+        log_messages.printf(MSG_CRITICAL, "Error connecting to database: %d, '%s'\n", mysql_errno(sss_db_conn), mysql_error(sss_db_conn));
+        exit(1);
+    }   
+}
+
+
 //returns 0 on sucess
 int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canonical_result) {
+    if (sss_db_conn == NULL) initialize_sss_database();
+
     int retval;
     vector<OUTPUT_FILE_INFO> files;
-    
-    MYSQL *conn = boinc_db.mysql;
 
     //Parse the max_value, subset_size and starting_subset values from the workunit name
     uint32_t max_value, subset_size;
@@ -70,19 +105,19 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
     query << "SELECT id FROM sss_runs WHERE max_value = " << max_value << " AND subset_size = " << subset_size << endl;
 
     log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-    mysql_query(conn, query.str().c_str());
-    MYSQL_RES *result = mysql_store_result(conn);
+    mysql_sss_query(query.str().c_str());
+    MYSQL_RES *result = mysql_store_result(sss_db_conn);
 
-    if (mysql_errno(conn) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+    if (mysql_errno(sss_db_conn) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
         exit(1);
     }
 
     MYSQL_ROW row = mysql_fetch_row(result);
-    if (mysql_errno(conn) != 0) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+    if (mysql_errno(sss_db_conn) != 0) {
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
     } else if (row == NULL) {
-        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
+        log_messages.printf(MSG_CRITICAL, "ERROR: getting id from sss_runs: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(sss_db_conn), mysql_error(sss_db_conn), __FILE__, __LINE__);
         log_messages.printf(MSG_CRITICAL, "returned NULL for rows.\n");
         exit(1);
     }
@@ -102,23 +137,14 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
             << "starting_subset = " << starting_subset;
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-        mysql_query(conn, query.str().c_str());
-
-        if (mysql_errno(conn) != 0) {
-            log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_errors with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
-            exit(1);
-        }
+        mysql_sss_query(query.str().c_str());
 
         query.str("");
         query.clear();
         query << "UPDATE sss_runs SET errors = errors + 1 WHERE id = " << id;
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-        mysql_query(conn, query.str().c_str());
-        if (mysql_errno(conn) != 0) {
-            log_messages.printf(MSG_CRITICAL, "ERROR: could not update sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
-            exit(1);
-        }
+        mysql_sss_query(query.str().c_str());
 
     } else if (wu.canonical_resultid == 0) {
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] assimilate_handler: error mask not set and canonical result id == 0, should never happen\n", canonical_result.id, canonical_result.name);
@@ -175,12 +201,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
                 << "failed_set = " << failed_sets[i];
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-            mysql_query(conn, query.str().c_str());
-
-            if (mysql_errno(conn) != 0) {
-                log_messages.printf(MSG_CRITICAL, "ERROR: could not insert into sss_results with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
-                exit(1);
-            }
+            mysql_sss_query(query.str().c_str());
         }
 
         /**
@@ -191,11 +212,7 @@ int assimilate_handler(WORKUNIT& wu, vector<RESULT>& /*results*/, RESULT& canoni
         query << "UPDATE sss_runs SET completed = completed + 1, failed_set_count = failed_set_count + " << failed_sets.size() << " WHERE id = " << id;
 
         log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-        mysql_query(conn, query.str().c_str());
-        if (mysql_errno(conn) != 0) {
-            log_messages.printf(MSG_CRITICAL, "ERROR: could not update sss_runs with query: '%s'. Error: %d -- '%s'. Thrown on %s:%d\n", query.str().c_str(), mysql_errno(conn), mysql_error(conn), __FILE__, __LINE__);
-            exit(1);
-        }
+        mysql_sss_query(query.str().c_str());
     }
 
     //Don't need to do anything, when the result is validated it gets inserted into the database directly

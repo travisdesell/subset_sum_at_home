@@ -58,7 +58,7 @@ int init_result(RESULT& result, void*& data) {
     }
 
     if (files.size() > 1) {
-        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had more than one output file: %u\n", result.id, result.name, files.size());
+        log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] had more than one output file: %zu\n", result.id, result.name, files.size());
         for (uint32_t i = 0; i < files.size(); i++) {
             log_messages.printf(MSG_CRITICAL, "    %s\n", files[i].path.c_str());
         }
@@ -121,8 +121,9 @@ int compare_results(
             bool all_match = true;
             for (unsigned int i = 0; i < f1->failed_sets.size(); i++) {
                 if (f1->failed_sets[i] != f2->failed_sets[i]) {
-                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%d] did not match %llu vs %llu\n", r1.id, r1.name, r2.id, r2.name, i, f1->failed_sets[i], f2->failed_sets[i]);
+                    log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets[%u] did not match %lu vs %lu\n", r1.id, r1.name, r2.id, r2.name, i, f1->failed_sets[i], f2->failed_sets[i]);
                     all_match = false;
+                    exit(1);
                     break;
                 }
             }
@@ -135,12 +136,13 @@ int compare_results(
             }
         } else {
             match = false;
-            log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
-//            exit(1);
+            log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different sizes %zu vs %zu\n", r1.id, r1.name, r2.id, r2.name, f1->failed_sets.size(), f2->failed_sets.size());
+            //exit(1);
         }
     } else {
         match = false;
         log_messages.printf(MSG_CRITICAL, "[RESULT#%d %s] and [RESULT#%d %s] failed sets had different checksums %u vs %u\n", r1.id, r1.name, r2.id, r2.name, f1->checksum, f2->checksum);
+        exit(1);
     }
 
     return 0;

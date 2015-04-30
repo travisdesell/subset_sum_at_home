@@ -196,9 +196,6 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
 
     //divide up the sets into mostly equal sized workunits
 
-    max_set_value = 60;
-    set_size = 30;
-
     log_messages.printf(MSG_NORMAL, "max_set_value: %u\n", max_set_value);
     log_messages.printf(MSG_NORMAL, "set size:      %u\n", set_size);
 
@@ -207,20 +204,21 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
     uint64_t total_generated = 0;
 
     log_messages.printf(MSG_NORMAL, "current_set: %lu, total_sets: %lu\n", current_set, total_sets);
+    log_messages.printf(MSG_NORMAL, "should generate %lu sets.\n", (total_sets / SETS_PER_WORKUNIT));
     while (current_set < total_sets) {
         if ((total_sets - current_set) > SETS_PER_WORKUNIT) {
             log_messages.printf(MSG_NORMAL, "generating workunit %lu with starting set %lu and %lu SETS PER WORKUNIT\n", total_generated, current_set, SETS_PER_WORKUNIT);
-            //make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
+            make_job(max_set_value, set_size, current_set, SETS_PER_WORKUNIT);
         } else {
             log_messages.printf(MSG_NORMAL, "generating workunit %lu with starting set %lu and %lu SETS PER WORKUNIT\n", total_generated, current_set, total_sets - current_set);
-            //make_job(max_set_value, set_size, current_set, total_sets - current_set);
+            make_job(max_set_value, set_size, current_set, total_sets - current_set);
         }
         current_set += SETS_PER_WORKUNIT;
 
         total_generated++;
     }
 
-    log_messages.printf(MSG_NORMAL, "max uint32_t: %lu\n", numeric_limits<uint32_t>::max());
+    log_messages.printf(MSG_NORMAL, "max uint32_t: %u\n", numeric_limits<uint32_t>::max());
     log_messages.printf(MSG_NORMAL, "max uint64_t: %lu\n", numeric_limits<uint64_t>::max());
 
     /**
@@ -234,10 +232,9 @@ void make_jobs(uint32_t max_set_value, uint32_t set_size) {
           << "completed = 0, errors = 0";
 
     log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-    //mysql_sss_query(query.str().c_str()); 
+    mysql_sss_query(query.str().c_str()); 
 
     log_messages.printf(MSG_DEBUG, "workunits generated: %lu\n", total_generated);
-    exit(1);
 }
 
 void main_loop() {
@@ -319,12 +316,13 @@ void main_loop() {
                 << "current_subset_size = " << subset_size;
 
             log_messages.printf(MSG_NORMAL, "%s\n", query.str().c_str());
-            //mysql_sss_query(query.str().c_str()); 
+            mysql_sss_query(query.str().c_str()); 
 
             // Now sleep for a few seconds to let the transitioner
             // create instances for the jobs we just created.
             // Otherwise we could end up creating an excess of jobs.
             sleep(30);
+            exit(1);
         }   
     }   
 }

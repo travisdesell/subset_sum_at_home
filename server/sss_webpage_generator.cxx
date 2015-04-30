@@ -148,7 +148,7 @@ void main_loop(MYSQL *conn) {
              *  Open the webpage to write to
              */
             ostringstream webpage_name;
-            webpage_name << "/projects/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html";
+            webpage_name << "/projects/csg/html/user/subset_sum/progress/set_" << max_set_value << "c" << subset_size << ".html";
             ofstream *output_target = new ofstream(webpage_name.str().c_str());
 
             log_messages.printf(MSG_DEBUG, "writing to file: '%s'\n", webpage_name.str().c_str());
@@ -221,9 +221,9 @@ void main_loop(MYSQL *conn) {
             output_target->close();
 
 //            if (fail > 0) {
-//                cerr << "[url=http://volunteer.cs.und.edu/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- " << fail << " failures" << endl;
+//                cerr << "[url=http://volunteer.cs.und.edu/csg/subset_sum/progress/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- " << fail << " failures" << endl;
 //            } else {
-//                cerr << "[url=http://volunteer.cs.und.edu/subset_sum/download/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- pass" << endl;
+//                cerr << "[url=http://volunteer.cs.und.edu/csg/subset_sum/progress/set_" << max_set_value << "c" << subset_size << ".html]" << max_set_value << " choose " << subset_size << "[/url] -- pass" << endl;
 //            }
 
             /**
@@ -332,5 +332,22 @@ int main(int argc, char** argv) {
 
     log_messages.printf(MSG_NORMAL, "Starting\n");
 
-    main_loop(boinc_db.mysql);
+
+    MYSQL *sss_db_conn = mysql_init(NULL);
+
+    //shoud get database info from a file
+    string db_host, db_name, db_password, db_user;
+    ifstream db_info_file("../sss_db_info");
+
+    db_info_file >> db_host >> db_name >> db_user >> db_password;
+    db_info_file.close();
+
+    log_messages.printf(MSG_NORMAL,"parsed db info, host: '%s', name: '%s', user: '%s', pass: '%s'\n", db_host.c_str(), db_name.c_str(), db_user.c_str(), db_password.c_str());
+
+    if (mysql_real_connect(sss_db_conn, db_host.c_str(), db_user.c_str(), db_password.c_str(), db_name.c_str(), 0, NULL, 0) == NULL) {
+        log_messages.printf(MSG_CRITICAL, "Error connecting to database: %d, '%s'\n", mysql_errno(sss_db_conn), mysql_error(sss_db_conn));
+        exit(1);
+    }   
+
+    main_loop(sss_db_conn);
 }

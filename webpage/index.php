@@ -54,7 +54,7 @@ echo "
             <div class='col-sm-6'>";
 
 show_uotd(2, 10, "style='margin-top:20px;'");
-csg_show_news();
+csg_show_news($project_name = "subset_sum", $limit = 10);
 
 echo "
             </div> <!-- col-sm-6 -->
