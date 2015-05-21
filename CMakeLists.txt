@@ -50,6 +50,8 @@ find_package(BOINC)
 #include_directories (${Boost_INCLUDE_DIR})
 #message("FOUND BOOST DIRECTORIES: ${Boost_INCLUDE_DIR}")
 
+message(STATUS "BOINC SOURCE: $ENV{BOINC_SOURCE}")
+
 include_directories(/home/tdesell/boost_1_53_0/)
 
 find_package(BOINC)
@@ -59,7 +61,6 @@ add_subdirectory(common)
 
 find_package(MySQL)
 find_package(Boost REQUIRED COMPONENTS system)
-
 
 if (BOINC_SERVER_FOUND AND MYSQL_FOUND)
     link_directories(${Boost_LIBRARY_DIRS})
