@@ -14,7 +14,7 @@ using namespace std;
 /**
  *  Print the bits in an uint32_t.  Note this prints out from right to left (not left to right)
  */
-void print_bits(ofstream *output_target, const uint32_t number) {
+void print_bits(ostream *output_target, const uint32_t number) {
     uint32_t pos = 1 << (ELEMENT_SIZE - 1);
     while (pos > 0) {
         if (number & pos) *output_target << "1";
@@ -26,7 +26,7 @@ void print_bits(ofstream *output_target, const uint32_t number) {
 /**
  * Print out an array of bits
  */
-void print_bit_array(ofstream *output_target, const uint32_t *bit_array, const uint32_t bit_array_length) {
+void print_bit_array(ostream *output_target, const uint32_t *bit_array, const uint32_t bit_array_length) {
     for (uint32_t i = 0; i < bit_array_length; i++) {
         print_bits(output_target, bit_array[i]);
     }
@@ -35,7 +35,7 @@ void print_bit_array(ofstream *output_target, const uint32_t *bit_array, const u
 /**
  *  Print out all the elements in a subset
  */
-void print_subset(ofstream *output_target, const uint32_t *subset, const uint32_t subset_size) {
+void print_subset(ostream *output_target, const uint32_t *subset, const uint32_t subset_size) {
     *output_target << "[";
 #ifndef HTML_OUTPUT
     for (uint32_t i = 0; i < subset_size; i++) {
@@ -56,7 +56,7 @@ void print_subset(ofstream *output_target, const uint32_t *subset, const uint32_
 /**
  * Print out an array of bits, coloring the required subsets green, if there is a missing sum (a 0) it is colored red
  */
-void print_bit_array_color(ofstream *output_target, const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max) {
+void print_bit_array_color(ostream *output_target, const uint32_t *bit_array, unsigned long int max_sums_length, uint32_t min, uint32_t max) {
     uint32_t msl = max_sums_length * ELEMENT_SIZE;
     uint32_t number, pos;
     uint32_t count = 0;
@@ -109,7 +109,7 @@ void print_bit_array_color(ofstream *output_target, const uint32_t *bit_array, u
     }
 }
 
-void print_subset_calculation(ofstream *output_target, const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
+void print_subset_calculation(ostream *output_target, const uint64_t iteration, uint32_t *subset, const uint32_t subset_size, const bool success) {
 
     uint32_t M = subset[subset_size - 1];
     uint32_t max_subset_sum = 0;

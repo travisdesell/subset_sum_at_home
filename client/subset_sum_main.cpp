@@ -324,7 +324,7 @@ int main(int argc, char** argv) {
     bool started_from_checkpoint = false;
 #endif
 
-    ofstream *output_target;
+    ostream *output_target = &cout;
 
 #ifdef _BOINC_
     string output_path;
@@ -437,7 +437,8 @@ int main(int argc, char** argv) {
     } else {
         *output_target << "performing " << expected_total << " set evaluations.";
     }
-#ifndef HTML_OUTPUT
+
+#ifdef HTML_OUTPUT
     *output_target << "<br>";
 #endif
     *output_target << endl;
@@ -551,7 +552,7 @@ int main(int argc, char** argv) {
         *output_target << " " << failed_sets->at(i);
         cerr << " " << failed_sets->at(i);
 #else
-        print_subset_calculation(failed_sets->at(i), subset, subset_size, false);
+        print_subset_calculation(output_target, failed_sets->at(i), subset, subset_size, false);
 #endif
     }
 #endif
