@@ -57,6 +57,12 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t max_length,
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &err);
     command_queue = clCreateCommandQueue(context, device_id, 0, &err);
 
+    program = clCreateProgramWithSource(context, 1, (const char **)&src_str,
+    (const size_t *)&src_size, &err);
+
+    err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    kernel = clCreateKernel(program, "opencl_bit_logic", &err);
+
     for(int i = 0; i < max_length; i++) {
         dest[i] = 1;
     }
