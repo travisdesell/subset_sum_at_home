@@ -24,7 +24,7 @@ using std::numeric_limits;
 cl_device_id device_id = NULL;
 cl_context context = NULL;
 cl_command_queue command_queue = NULL;
-cl_mem memSrc, memDest, memSize;
+cl_mem memSrc, memDest, memLength, memShift, memElm;
 cl_program program = NULL;
 cl_kernel kernel = NULL;
 cl_platform_id platform_id = NULL;
@@ -51,9 +51,6 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
         exit(1);
     }
 
-    memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE,subset_length * ELEMENT, NULL, &err);
-    memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, max_sums_length * ELEMENT, NULL, &err);
-    memSize = clCreateBuffer(context, CL_MEM_READ_WRITE, max_sums_length * ELEMENT, NULL, &err);
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &err);
     command_queue = clCreateCommandQueue(context, device_id, 0, &err);
 
@@ -61,16 +58,42 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
     (const size_t *)&src_size, &err);
 }
 
-static inline void cl_shift_left(uint32_t *dest, const uint32_t max_length, const uint32_t subset_size,
-     const uint32_t *src, const uint32_t shift) {
+static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
+     const uint32_t *src, const uint32_t *shift) {
+
+    memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(dest), NULL, &err);
+    memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(src), NULL, &err);
+    memLength = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
+    memShift = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
+    memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t) * 8, NULL, &err);
+    err = clEnqueueWriteBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), (void *)dest, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, memLength, CL_TRUE, 0, sizeof(uint32_t), (void *)max_length, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, memSrc, CL_TRUE, 0, sizeof(src), (void *)src, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(shift), (void *)shift, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t) * 8, (void *)ELEMENT, 0, NULL, NULL);
 
     err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    kernel = clCreateKernel(program, "opencl_bit_logic", &err);
+    kernel = clCreateKernel(program, "cl_shift_left", &err);
 
-    for(int i = 0; i < max_length; i++) {
-        dest[i] = 1;
-    }
+    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memDest);
+    err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memLength);
+    err = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memSrc);
+    err = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&memShift);
+    err = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&memElm);
 
+    err = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), dest, 0, NULL, NULL);
 
+    err = clFlush(command_queue);
+	err = clFinish(command_queue);
+    err = clReleaseKernel(kernel);
 
+    err = clReleaseProgram(program);
+	err = clReleaseMemObject(memDest);
+	err = clReleaseMemObject(memElm);
+	err = clReleaseMemObject(memLength);
+	err = clReleaseMemObject(memShift);
+	err = clReleaseMemObject(memElm);
+	err = clReleaseCommandQueue(command_queue);
+	err = clReleaseContext(context);
 }
