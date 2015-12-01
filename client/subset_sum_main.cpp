@@ -74,17 +74,19 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     }
 
 //    *output_target << "\n");
+    #ifdef _OpenCl_
+    build_cl_program(max_sums_length, subset_size);
+    #endif
     uint32_t current;
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
-
         #ifdef _OpenCl_
-        cl_shift_left(new_sums, max_sums_length, subset_size, sums, current);                    // new_sums = sums << current;
+        cl_shift_left(new_sums, max_subset_sum, subset_size, sums, current);                    // new_sums = sums << current;
         #else
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-//        *output_target << "new_sums = sums << %2u    = ", current);
-//        print_bit_array(new_sums, sums_length);
-//        *output_target << "\n");
+        //*output_target << "new_sums = sums << %2u    = ", current);
+        print_bit_array(new_sums, sums_length);
+        //*output_target << "\n");
         #endif
 
 
