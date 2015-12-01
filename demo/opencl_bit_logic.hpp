@@ -56,6 +56,8 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
 
     program = clCreateProgramWithSource(context, 1, (const char **)&src_str,
     (const size_t *)&src_size, &err);
+    err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    kernel = clCreateKernel(program, "cl_shift_left", &err);
 }
 
 static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
@@ -72,8 +74,6 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
     err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(shift), (void *)shift, 0, NULL, NULL);
     err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t) * 8, (void *)ELEMENT, 0, NULL, NULL);
 
-    err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-    kernel = clCreateKernel(program, "cl_shift_left", &err);
 
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memDest);
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memLength);
@@ -86,14 +86,10 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
 
     err = clFlush(command_queue);
 	err = clFinish(command_queue);
-    err = clReleaseKernel(kernel);
 
-    err = clReleaseProgram(program);
 	err = clReleaseMemObject(memDest);
 	err = clReleaseMemObject(memElm);
 	err = clReleaseMemObject(memLength);
 	err = clReleaseMemObject(memShift);
-	err = clReleaseMemObject(memElm);
-	err = clReleaseCommandQueue(command_queue);
-	err = clReleaseContext(context);
+	err = clReleaseMemObject(memSrc);
 }

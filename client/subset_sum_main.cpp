@@ -85,7 +85,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
         #else
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
         //*output_target << "new_sums = sums << %2u    = ", current);
-        print_bit_array(new_sums, sums_length);
+        //print_bit_array(new_sums, sums_length);
         //*output_target << "\n");
         #endif
 
@@ -99,6 +99,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 //        *output_target << "sums != 1 << current - 1 = ");
 //        print_bit_array(sums, sums_length);
 //        *output_target << "\n");
+        printf("here\n");
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
