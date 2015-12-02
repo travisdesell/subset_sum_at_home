@@ -33,6 +33,29 @@ cl_uint num_platforms;
 cl_int err;
 FILE *fp;
 
+
+void check_error(cl_int err, const char* fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+
+    if (err < 0) {
+        if(err == CL_BUILD_PROGRAM_FAILURE){
+            //get build log size
+            size_t log_size;
+            clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+            char *build_log = (char *)malloc(log_size);
+            //get log
+            clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL);
+            vfprintf(stderr, build_log, argp);
+            fprintf(stderr, "\n");
+        }
+        vfprintf(stderr, fmt, argp);
+        fprintf(stderr, "\n");
+        exit(1);
+    }
+}
+
+
 static inline void build_cl_program(const uint32_t max_length, const uint32_t subset_length) {
     char filename[] = "../demo/opencl_bit_logic.cl";
     fp = fopen(filename, "r");
@@ -52,27 +75,42 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
     }
 
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &err);
+    check_error(err, "Unable to create context %d", err);
     command_queue = clCreateCommandQueue(context, device_id, 0, &err);
+    check_error(err, "Unable to create command que %d", err);
 
     program = clCreateProgramWithSource(context, 1, (const char **)&src_str,
     (const size_t *)&src_size, &err);
+    check_error(err, "Unable to create program %d", err);
     err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
+    check_error(err, "Unable to build program %d", err);
     kernel = clCreateKernel(program, "cl_shift_left", &err);
+    check_error(err, "Unable to create kernel %d", err);
 }
 
 static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
      const uint32_t *src, const uint32_t *shift) {
 
     memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(dest), NULL, &err);
+    check_error(err, "Unable to create buffer src %d", err);
     memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(src), NULL, &err);
+    check_error(err, "Unable to create buffer dest %d", err);
     memLength = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
+    check_error(err, "Unable to create buffer length %d", err);
     memShift = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
-    memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t) * 8, NULL, &err);
+    check_error(err, "Unable to create buffer shift %d", err);
+    memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  ELEMENT, NULL, &err);
+    check_error(err, "Unable to create buffer elm%d", err);
     err = clEnqueueWriteBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), (void *)dest, 0, NULL, NULL);
+    check_error(err, "Unable to create buffer 1 %d", err);
     err = clEnqueueWriteBuffer(command_queue, memLength, CL_TRUE, 0, sizeof(uint32_t), (void *)max_length, 0, NULL, NULL);
+    check_error(err, "Unable to create buffer 2 %d", err);
     err = clEnqueueWriteBuffer(command_queue, memSrc, CL_TRUE, 0, sizeof(src), (void *)src, 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(shift), (void *)shift, 0, NULL, NULL);
-    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t) * 8, (void *)ELEMENT, 0, NULL, NULL);
+    check_error(err, "Unable to create buffer 3 %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t), (void *)shift, 0, NULL, NULL);
+    check_error(err, "Unable to create buffer 4 %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memElm, CL_TRUE, 0, (size_t)ELEMENT, (void *)ELEMENT, 0, NULL, NULL);
+    check_error(err, "Unable to create buffer 5 %d", err);
 
 
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memDest);

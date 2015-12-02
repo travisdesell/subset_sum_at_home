@@ -99,7 +99,6 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 //        *output_target << "sums != 1 << current - 1 = ");
 //        print_bit_array(sums, sums_length);
 //        *output_target << "\n");
-        printf("here\n");
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
