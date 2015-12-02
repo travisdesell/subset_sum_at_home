@@ -63,7 +63,7 @@ uint32_t *new_sums;             //extern
  */
 static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
-    uint32_t M = subset[subset_size - 1];
+
     uint32_t max_subset_sum = 0;
 
     for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
@@ -74,24 +74,29 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     }
 
 //    *output_target << "\n");
-
+/*TODO
+Orginize the code so its more readable
+*/
     #ifdef _OpenCl_
-    //builds the needed kernels for use in the for loop
+    //OpenCl version of shift left
     build_cl_program(max_sums_length, subset_size);
-    #endif
+    cl_shift_left(sums, &max_subset_sum, subset, &subset_size);
+    for(int i = 0; i < max_subset_sum; i++){
+        printf("%d", sums[i]);
+    }
+    printf("\n");
+    bool success = false; //all_ones(sums, max_sums_length);
+                  // new_sums = sums << current;
+    #else
     uint32_t current;
+    uint32_t M = subset[subset_size - 1];
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
-        #ifdef _OpenCl_
-        //OpenCl version of shift left
-        cl_shift_left(new_sums, &max_subset_sum, sums, &current);                    // new_sums = sums << current;
-        #else
+
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
         //*output_target << "new_sums = sums << %2u    = ", current);
         //print_bit_array(new_sums, sums_length);
         //*output_target << "\n");
-        #endif
-
 
         or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
 //        *output_target << "sums |= new_sums         = ");
@@ -105,6 +110,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
+    #endif
 
 #ifdef _BOINC_
     //Calculate a checksum for verification on BOINC
