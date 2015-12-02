@@ -76,6 +76,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 //    *output_target << "\n");
 /*TODO
 Orginize the code so its more readable
+Get the code to compile with original subsetsum code
 */
     #ifdef _OpenCl_
     //OpenCl version of shift left

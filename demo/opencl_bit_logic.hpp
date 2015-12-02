@@ -100,8 +100,7 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
 
 }
 /*TODO
-Fix the trap: 6 error
-figure out things that should implement on the cpu
+figure out what calculations need to be done on the cpu
 implement other bit logic functions
 */
 
