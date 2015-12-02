@@ -6,9 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//required for va_start, etc.
-#include <stdarg.h>
-
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -78,7 +75,7 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
     err = clGetPlatformIDs(1, &platform_id, &num_platforms);
     check_error(err, "Failed to aquire platform id: ", err);
     clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_devices);
-    check_error(err, "Failed to acquire device id: ", err);
+    check_error(err, "Failed to device id: ", err);
 
 
     //Create context and command queue
@@ -102,17 +99,16 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
 static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
      const uint32_t *src, const uint32_t *shift) {
 
-
     //Create the buffer for the object to be copied to device memory
-    memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(dest), NULL, &err);
+    memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(dest), NULL, &err);
     check_error(err, "Unable to create buffer src %d", err);
-    memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(src), NULL, &err);
+    memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(src), NULL, &err);
     check_error(err, "Unable to create buffer dest %d", err);
     memLength = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
     check_error(err, "Unable to create buffer length %d", err);
     memShift = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
     check_error(err, "Unable to create buffer shift %d", err);
-    memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
+    memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  ELEMENT, NULL, &err);
     check_error(err, "Unable to create buffer elm%d", err);
 
     //Queue the buffer to be written to memory
@@ -124,7 +120,7 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
     check_error(err, "Unable to write src %d", err);
     err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t), (void *)shift, 0, NULL, NULL);
     check_error(err, "Unable to write shift %d", err);
-    err = clEnqueueWriteBuffer(command_queue, memElm, CL_TRUE, 0, sizeof(uint32_t), (void *)ELEMENT, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, memElm, CL_TRUE, 0, (size_t)ELEMENT, (void *)ELEMENT, 0, NULL, NULL);
     check_error(err, "Unable to write ELEMENT %d", err);
 
 
@@ -134,7 +130,7 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
     err = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memSrc);
     err = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&memShift);
     err = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&memElm);
-    //Queue the task run
+    //Queue the task to be ran
     err = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
 
     //Retrive the buffer of the output

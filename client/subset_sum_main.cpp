@@ -76,7 +76,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
 //    *output_target << "\n");
 
     #ifdef _OpenCl_
-    //builds the needed kernals for use in the for loop
+    //builds the needed kernels for use in the for loop
     build_cl_program(max_sums_length, subset_size);
     #endif
     uint32_t current;
