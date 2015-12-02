@@ -62,7 +62,7 @@ void check_error(cl_int err, const char* fmt, ...) {
     }
 }
 
-
+// ???? params 'max_length' and 'subset_length' are not used ????
 static inline void build_cl_program(const uint32_t max_length, const uint32_t subset_length) {
     //path to opencl file
     char filename[] = "../demo/opencl_bit_logic.cl";
@@ -94,14 +94,13 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
     //build the program
     err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
     check_error(err, "Unable to build program %d", err);
-    //Create the kernal to be queued
+    //Create the kernel to be queued
     kernel = clCreateKernel(program, "cl_shift_left", &err);
     check_error(err, "Unable to create kernel %d", err);
 }
 
 static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
      const uint32_t *src, const uint32_t *shift) {
-
 
     //Create the buffer for the object to be copied to device memory
     memDest = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(dest), NULL, &err);
@@ -115,30 +114,39 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
     memElm = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
     check_error(err, "Unable to create buffer elm%d", err);
 
-    //Queue the buffer to be written to memory
-    err = clEnqueueWriteBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), (void *)dest, 0, NULL, NULL);
-    check_error(err, "Unable to write dest %d", err);
-    err = clEnqueueWriteBuffer(command_queue, memLength, CL_TRUE, 0, sizeof(uint32_t), (void *)max_length, 0, NULL, NULL);
-    check_error(err, "Unable to write length %d", err);
-    err = clEnqueueWriteBuffer(command_queue, memSrc, CL_TRUE, 0, sizeof(src), (void *)src, 0, NULL, NULL);
-    check_error(err, "Unable to write src %d", err);
-    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t), (void *)shift, 0, NULL, NULL);
-    check_error(err, "Unable to write shift %d", err);
-    err = clEnqueueWriteBuffer(command_queue, memElm, CL_TRUE, 0, sizeof(uint32_t), (void *)ELEMENT, 0, NULL, NULL);
-    check_error(err, "Unable to write ELEMENT %d", err);
 
-
-    //Set the arguements for the kernel
+    //Set the arguments for the kernel
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memDest);
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memLength);
     err = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memSrc);
     err = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&memShift);
     err = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&memElm);
-    //Queue the task run
+    //Queue the task to run
     err = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
+
+
+    //Queue the buffer to be written to memory
+    err = clEnqueueWriteBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), (void *)dest, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to write dest %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memLength, CL_TRUE, 0, sizeof(uint32_t), (void *)max_length, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to write length %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memSrc, CL_TRUE, 0, sizeof(src), (void *)src, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to write src %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memShift, CL_TRUE, 0, sizeof(uint32_t), (void *)shift, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to write shift %d", err);
+    err = clEnqueueWriteBuffer(command_queue, memElm, CL_TRUE, 0, sizeof(uint32_t), (void *)ELEMENT, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to write ELEMENT %d", err);
+
 
     //Retrive the buffer of the output
     err = clEnqueueReadBuffer(command_queue, memDest, CL_TRUE, 0, sizeof(dest), dest, 0, NULL, NULL);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to read buffer %d", err);
 
     //clear and end the queue
     err = clFlush(command_queue);
@@ -150,4 +158,7 @@ static inline void cl_shift_left(uint32_t *dest, const uint32_t *max_length,
 	err = clReleaseMemObject(memLength);
 	err = clReleaseMemObject(memShift);
 	err = clReleaseMemObject(memSrc);
+
+
 }
+
