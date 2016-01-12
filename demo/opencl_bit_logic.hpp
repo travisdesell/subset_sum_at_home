@@ -106,10 +106,11 @@ implement other bit logic functions
 
 static inline void cl_shift_left(uint32_t *dest, uint32_t *max_length, const uint32_t *src, const uint32_t *shift) {
     //Create the buffer for the object to be copied to device memory
-    size_t sum_size = (size_t) *max_length;
+    size_t sum_size = (size_t) (*max_length+1);
     sum_size *= sizeof(uint32_t);
     size_t set_size = (size_t) *shift;
-    uint32_t sums[*max_length];
+    set_size *= sizeof(uint32_t);
+    uint32_t sums[*max_length + 1];
     for(int i = 0; i < *max_length; i++) {
         sums[i] = 0;
     }
@@ -117,9 +118,9 @@ static inline void cl_shift_left(uint32_t *dest, uint32_t *max_length, const uin
     check_error(err, "Unable to create buffer src %d", err);
     memSrc = clCreateBuffer(context, CL_MEM_READ_WRITE, set_size, NULL, &err);
     check_error(err, "Unable to create buffer dest %d", err);
-    memLength = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(uint32_t), NULL, &err);
+    memLength = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
     check_error(err, "Unable to create buffer length %d", err);
-    memShift = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(uint32_t), NULL, &err);
+    memShift = clCreateBuffer(context, CL_MEM_READ_WRITE,  sizeof(uint32_t), NULL, &err);
     check_error(err, "Unable to create buffer shift %d", err);
 
     //Queue the buffer to be written to memory
@@ -137,19 +138,22 @@ static inline void cl_shift_left(uint32_t *dest, uint32_t *max_length, const uin
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memDest);
     check_error(err, "Unable to unable to set arg 0 %d", err);
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&memLength);
-    check_error(err, "Unable to unable to set arg 0 %d", err);
+    check_error(err, "Unable to unable to set arg 1 %d", err);
     err = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&memSrc);
-    check_error(err, "Unable to unable to set arg 0 %d", err);
+    check_error(err, "Unable to unable to set arg 2 %d", err);
     err = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&memShift);
-    check_error(err, "Unable to unable to set arg 0 %d", err);
+    check_error(err, "Unable to unable to set arg 3 %d", err);
     //Queue the task to run
     err = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
     check_error(err, "Unable to execute %d", err);
+    err = clFinish(command_queue);
+    check_error(err, "Unable to read buffer %d", err);
 
 
     //Retrive the buffer of the output
     err = clEnqueueReadBuffer(command_queue, memDest, CL_TRUE, 0, sum_size, sums, 0, NULL, NULL);
-    //err = clFinish(command_queue);
+    //check_error(err, "Unable to read buffer %d", err);
+    err = clEnqueueReadBuffer(command_queue, memLength, CL_TRUE, 0, sizeof(uint32_t), (void *) max_length, 0, NULL, NULL);
     check_error(err, "Unable to read buffer %d", err);
 
     //clear and end the queue
@@ -172,7 +176,4 @@ static inline void cl_shift_left(uint32_t *dest, uint32_t *max_length, const uin
     clReleaseKernel(kernel);
     //clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
-    for(int i = 0; i < *max_length; i++){
-        dest[i] = sums[i];
-    }
 }
