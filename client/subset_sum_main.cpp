@@ -80,17 +80,21 @@ Get the code to compile with original subsetsum code
 */
     #ifdef _OpenCl_
     //OpenCl version of shift left
-    build_cl_program(max_sums_length, subset_size);
+    uint32_t M = subset[subset_size - 1];
+    //printf("After building\n");
     cl_shift_left(sums, &max_subset_sum, subset, &subset_size);
+    //printf("after shifting\n");
+    /* used for debuging
     for(int i = 0; i < max_subset_sum; i++){
         printf("%d", sums[i]);
     }
-    printf("\n");
-    bool success = false; //all_ones(sums, max_sums_length);
+    printf("\n");*/
+    bool success = cl_all_ones(sums, max_sums_length, M, max_subset_sum - M); //all_ones(sums, max_sums_length);
+    //printf("after checking the central region\n");
                   // new_sums = sums << current;
     #else
     uint32_t current;
-    uint32_t M = subset[subset_size - 1];
+
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
@@ -492,6 +496,7 @@ int main(int argc, char** argv) {
 
     bool success;
 
+    build_cl_program(max_sums_length, subset_size);
     while (subset[0] <= (max_set_value - subset_size + 1)) {
         success = test_subset(subset, subset_size);
 
@@ -548,6 +553,7 @@ int main(int argc, char** argv) {
 #endif
             }
         }
+        release_cl_program();
 #endif
     }
 
