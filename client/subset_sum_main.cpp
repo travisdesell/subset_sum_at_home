@@ -67,6 +67,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     uint32_t max_subset_sum = 0;
 
     for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
+    sums = (uint32_t *) malloc(sizeof(uint32_t)*max_subset_sum);
 
     for (uint32_t i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
