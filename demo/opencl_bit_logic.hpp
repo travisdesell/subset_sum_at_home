@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <climits>
+#include <math.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,7 +64,7 @@ void check_error(cl_int err, const char* fmt, ...) {
 }
 
 // ???? params 'max_length' and 'subset_length' are not used ????
-static inline void build_cl_program(const uint32_t max_length, const uint32_t subset_length) {
+static inline void build_cl_program(const uint32_t max_length, const uint32_t subset_length, const uint32_t num_sets) {
     //path to opencl file
     char filename[] = "../demo/opencl_bit_logic.cl";
     fp = fopen(filename, "r");
@@ -82,6 +83,10 @@ static inline void build_cl_program(const uint32_t max_length, const uint32_t su
     clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_devices);
     check_error(err, "Failed to acquire device id: ", err);
 
+    size_t *local;
+    clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &local, NULL);
+    size_t *groups;
+    *groups = (size_t) ceil((float)num_sets/(float)(*local));
 
     //Create context and command queue
     context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &err);
