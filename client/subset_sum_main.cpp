@@ -33,7 +33,7 @@
 /**
  *  Includes for subset sum
  */
-
+#include "../demo/opencl_bit_logic.hpp"
 #include "../common/bit_logic.hpp"
 #include "../common/generate_subsets.hpp"
 #include "../common/binary_output.hpp"
@@ -63,25 +63,46 @@ uint32_t *new_sums;             //extern
  */
 static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size) {
     //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
-    uint32_t M = subset[subset_size - 1];
+
     uint32_t max_subset_sum = 0;
 
     for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
-    
+    sums = (uint32_t *) malloc(sizeof(uint32_t)*max_subset_sum);
+
     for (uint32_t i = 0; i < max_sums_length; i++) {
         sums[i] = 0;
         new_sums[i] = 0;
     }
 
 //    *output_target << "\n");
+/*TODO
+Orginize the code so its more readable
+Get the code to compile with original subsetsum code
+*/
+    #ifdef _OpenCl_
+    //OpenCl version of shift left
+    uint32_t M = subset[subset_size - 1];
+    //printf("After building\n");
+    cl_shift_left(sums, &max_subset_sum, subset, &subset_size);
+    //printf("after shifting\n");
+    /* used for debuging
+    for(int i = 0; i < max_subset_sum; i++){
+        printf("%d", sums[i]);
+    }
+    printf("\n");*/
+    bool success = cl_all_ones(sums, max_sums_length, M, max_subset_sum - M); //all_ones(sums, max_sums_length);
+    //printf("after checking the central region\n");
+                  // new_sums = sums << current;
+    #else
     uint32_t current;
+
     for (uint32_t i = 0; i < subset_size; i++) {
         current = subset[i];
 
         shift_left(new_sums, max_sums_length, sums, current);                    // new_sums = sums << current;
-//        *output_target << "new_sums = sums << %2u    = ", current);
-//        print_bit_array(new_sums, sums_length);
-//        *output_target << "\n");
+        //*output_target << "new_sums = sums << %2u    = ", current);
+        //print_bit_array(new_sums, sums_length);
+        //*output_target << "\n");
 
         or_equal(sums, max_sums_length, new_sums);                               //sums |= new_sums;
 //        *output_target << "sums |= new_sums         = ");
@@ -95,6 +116,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
     }
 
     bool success = all_ones(sums, max_sums_length, M, max_subset_sum - M);
+    #endif
 
 #ifdef _BOINC_
     //Calculate a checksum for verification on BOINC
@@ -106,7 +128,7 @@ static inline bool test_subset(const uint32_t *subset, const uint32_t subset_siz
             checksum += sums[i];
         } else { // avoid the overflow
             checksum = sums[i] - (UINT32_MAX - checksum);
-        } 
+        }
     }
 
 #endif
@@ -120,7 +142,7 @@ void write_checkpoint(string filename, const uint64_t iteration, const uint64_t 
     if (retval) {
         cerr << "APP: error writing checkpoint (resolving checkpoint file name)" << endl;
         return;
-    }   
+    }
 
     ofstream checkpoint_file(output_path.c_str());
 #else
@@ -129,7 +151,7 @@ void write_checkpoint(string filename, const uint64_t iteration, const uint64_t 
     if (!checkpoint_file.is_open()) {
         cerr << "APP: error writing checkpoint (opening checkpoint file)" << endl;
         return;
-    }   
+    }
 
     checkpoint_file << "iteration: " << iteration << endl;
     checkpoint_file << "pass: " << pass << endl;
@@ -239,7 +261,7 @@ T parse_t(const char* arg) {
         else if (n[i] == '4') val = 4;
         else if (n[i] == '5') val = 5;
         else if (n[i] == '6') val = 6;
-        else if (n[i] == '7') val = 7; 
+        else if (n[i] == '7') val = 7;
         else if (n[i] == '8') val = 8;
         else if (n[i] == '9') val = 9;
         else {
@@ -249,7 +271,7 @@ T parse_t(const char* arg) {
 #endif
             exit(1);
         }
-        
+
         result += place * val;
         place *= 10;
     }
@@ -413,7 +435,7 @@ int main(int argc, char** argv) {
     uint32_t *subset = new uint32_t[subset_size];
 
 //    this caused a problem:
-//    
+//
 //    *output_target << "%15u ", 296010);
 //    generate_ith_subset(296010, subset, subset_size, max_set_value);
 //    print_subset(subset, subset_size);
@@ -475,6 +497,7 @@ int main(int argc, char** argv) {
 
     bool success;
 
+    build_cl_program(max_sums_length, subset_size);
     while (subset[0] <= (max_set_value - subset_size + 1)) {
         success = test_subset(subset, subset_size);
 
@@ -531,6 +554,7 @@ int main(int argc, char** argv) {
 #endif
             }
         }
+        release_cl_program();
 #endif
     }
 
@@ -645,4 +669,3 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR Args, int WinMode
     return main(argc, argv);
 }
 #endif
-
