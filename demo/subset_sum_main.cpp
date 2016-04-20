@@ -11,6 +11,8 @@
 #include <sstream>
 #include <vector>
 #include <iomanip>
+#include <thread>
+#include <mutex>
 
 #include "stdint.h"
 /**
@@ -39,8 +41,10 @@ double max_set_digits;              //extern
 unsigned long int max_sums_length;  //extern
 uint32_t *sums;                 //extern
 uint32_t *new_sums;             //extern
-
 uint32_t *block;
+uint32_t count;
+mutex mtx;
+
 
 bool generate_next_block(uint32_t subset_size, uint32_t max_set_value, uint32_t *subset){
     for(uint32_t j = 0; j < subset_size; j++){
@@ -95,6 +99,17 @@ T parse_t(const char* arg) {
     }
 
     return result;
+}
+
+void COUNT_FAILED(uint32_t offset, int *comp, uint32_t size){
+    for(uint32_t i = 0; i < *block_size; i++){
+        if(comp[i] == 0){
+            mtx.lock();
+            failed_sets->push_back(offset + i);
+            count++;
+            mtx.unlock();
+        }
+    }
 }
 
 
@@ -196,23 +211,27 @@ int main(int argc, char** argv) {
     int *complete = new int[*block_size + 1];
     bool has_next = true;
 
-    uint32_t count = 0;
+
     uint32_t block_it = 0;
     uint32_t block_offset;
+    int th_count = (int)ceil((double)expected_total/ (double) *block_size);
+    thread *threads = new thread[th_count];
+    count = 0;
     while (has_next) {
         block_offset = (*block_size - 1) * block_it;
         has_next = generate_next_block(subset_size, max_set_value, subset);
         cl_shift_left(block, subset_size, complete);
         //Need to find a more efficient way of saving failed_sets
-        for(uint32_t i = 0; i < *block_size; i++){
-            if(complete[i] == 0){
-                failed_sets->push_back(block_offset + i);
-                count++;
-            }
-        }
+        int *block_complete = new int[*block_size +1];
+        memcpy(block_complete, complete, (*block_size + 1)* sizeof(int));
+        threads[block_it] = thread(COUNT_FAILED, block_offset, block_complete, *block_size);
         block_it++;
     }
     release_cl_program();
+
+    for(int i = 0; i < th_count; i++){
+        threads[i].join();
+    }
 
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
