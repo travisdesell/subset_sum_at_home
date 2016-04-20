@@ -40,34 +40,30 @@ unsigned long int max_sums_length;  //extern
 uint32_t *sums;                 //extern
 uint32_t *new_sums;             //extern
 
+uint32_t *block;
+
+bool generate_next_block(uint32_t subset_size, uint32_t max_set_value, uint32_t *subset){
+    for(uint32_t j = 0; j < subset_size; j++){
+        block[j] = subset[j];
+    }
+    for(uint32_t i = 1; i < *block_size; i ++){
+        int offset = i*subset_size;
+        generate_next_subset(subset, subset_size, max_set_value);
+        for(uint32_t j = 0; j < subset_size; j++){
+            block[offset + j] = subset[j];
+        }
+        if (subset[0] == (max_set_value - subset_size + 1)){
+            *block_size = i + 1;
+            return false;
+        }
+
+    }
+    return true;
+}
 
 /**
  *  Tests to see if a subset all passes the subset sum hypothesis
  */
-static inline bool test_subset(const uint32_t *subset, const uint32_t subset_size) {
-    //this is also symmetric.  TODO: Only need to check from the largest element in the set (9) to the sum(S)/2 == (13), need to see if everything between 9 and 13 is a 1
-
-    uint32_t max_subset_sum = 0;
-
-    for (uint32_t i = 0; i < subset_size; i++) max_subset_sum += subset[i];
-    sums = (uint32_t *) malloc(sizeof(uint32_t)*max_subset_sum);
-
-    for (uint32_t i = 0; i < max_sums_length; i++) {
-        sums[i] = 0;
-        new_sums[i] = 0;
-    }
-
-//    *output_target << "\n");
-/*TODO
-Orginize the code so its more readable
-Get the code to compile with original subsetsum code
-*/
-    //OpenCl version of shift left
-    uint32_t M = subset[subset_size - 1];
-    cl_shift_left(sums, &max_subset_sum, subset, &subset_size);
-    bool success = cl_all_ones(sums, max_sums_length, M, max_subset_sum - M);
-    return success;
-}
 
 
 template <class T>
@@ -120,8 +116,6 @@ int main(int argc, char** argv) {
     uint32_t subset_size = parse_t<uint32_t>(argv[2]);
 
     uint64_t iteration = 0;
-    uint64_t pass = 0;
-    uint64_t fail = 0;
 
     bool doing_slice = false;
     uint64_t starting_subset = 0;
@@ -194,36 +188,38 @@ int main(int argc, char** argv) {
     sums = new uint32_t[max_sums_length];
     new_sums = new uint32_t[max_sums_length];
 
-    bool success;
+    for (uint32_t i = 0; i < subset_size - 1; i++) subset[i] = i + 1;
+    subset[subset_size - 1] = max_set_value;
 
-    build_cl_program(max_sums_length, subset_size);
-    while (subset[0] <= (max_set_value - subset_size + 1)) {
-        success = test_subset(subset, subset_size);
+    build_cl_program(subset_size);
+    block = new uint32_t[((*block_size) * subset_size) + 1];
+    int *complete = new int[*block_size + 1];
+    bool has_next = true;
 
-        if (success) {
-            pass++;
-        } else {
-            fail++;
-            failed_sets->push_back(starting_subset + iteration);
+    uint32_t count = 0;
+    uint32_t block_it = 0;
+    uint32_t block_offset;
+    while (has_next) {
+        block_offset = (*block_size - 1) * block_it;
+        has_next = generate_next_block(subset_size, max_set_value, subset);
+        cl_shift_left(block, subset_size, complete);
+        //Need to find a more efficient way of saving failed_sets
+        for(uint32_t i = 0; i < *block_size; i++){
+            if(complete[i] == 0){
+                failed_sets->push_back(block_offset + i);
+                count++;
+            }
         }
-
-        generate_next_subset(subset, subset_size, max_set_value);
-
-        iteration++;
-        if (doing_slice && iteration >= subsets_to_calculate) break;
-
+        block_it++;
     }
     release_cl_program();
-    cout << failed_sets->size() << endl;
 
     for (uint32_t i = 0; i < failed_sets->size(); i++) {
-        cout<< "testing" << endl;
-        cout << subset_size << " " << max_set_value << endl;
-        cout<< "testing" << endl;
         generate_ith_subset(failed_sets->at(i), subset, subset_size, max_set_value);
-        cout<< "testing" << endl;
         print_subset_calculation(output_target, failed_sets->at(i), subset, subset_size, false);
     }
+
+    cout << "Total failed sets: " << failed_sets->size() << endl;
 
     /**
      * pass + fail should = M! / (N! * (M - N)!)
