@@ -43,24 +43,19 @@ uint32_t *sums;                 //extern
 uint32_t *new_sums;             //extern
 uint32_t *block;
 uint32_t count;
+uint32_t set_it;
 mutex mtx;
 
 
-bool generate_next_block(uint32_t subset_size, uint32_t max_set_value, uint32_t *subset){
-    for(uint32_t j = 0; j < subset_size; j++){
-        block[j] = subset[j];
-    }
-    for(uint32_t i = 1; i < *block_size; i ++){
+bool generate_next_block(uint32_t subset_size, uint32_t max_set_value, uint32_t *subset, uint32_t total){
+    for(uint32_t i = 0; i < *block_size; i ++){
         int offset = i*subset_size;
-        generate_next_subset(subset, subset_size, max_set_value);
-        for(uint32_t j = 0; j < subset_size; j++){
-            block[offset + j] = subset[j];
-        }
-        if (subset[0] == (max_set_value - subset_size + 1)){
-            *block_size = i + 1;
+        if (set_it == total){
+            *block_size = i;
             return false;
         }
-
+        generate_ith_subset(set_it, &block[offset], subset_size, max_set_value);
+        ++set_it;
     }
     return true;
 }
@@ -217,13 +212,14 @@ int main(int argc, char** argv) {
     int th_count = (int)ceil((double)expected_total/ (double) *block_size);
     thread *threads = new thread[th_count];
     count = 0;
+    set_it = 0;
     while (has_next) {
-        block_offset = (*block_size - 1) * block_it;
-        has_next = generate_next_block(subset_size, max_set_value, subset);
+        has_next = generate_next_block(subset_size, max_set_value, subset, expected_total);
         cl_shift_left(block, subset_size, complete);
         //Need to find a more efficient way of saving failed_sets
-        int *block_complete = new int[*block_size +1];
-        memcpy(block_complete, complete, (*block_size + 1)* sizeof(int));
+        block_offset = (*block_size) * block_it;
+        int *block_complete = new int[*block_size];
+        memcpy(block_complete, complete, (*block_size)* sizeof(int));
         threads[block_it] = thread(COUNT_FAILED, block_offset, block_complete, *block_size);
         block_it++;
     }
