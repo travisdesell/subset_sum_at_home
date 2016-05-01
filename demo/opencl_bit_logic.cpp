@@ -86,7 +86,7 @@ void build_cl_program(const uint32_t subset_length) {
     err = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
     check_error(err, "Unable to build program %d", err);
     //Create the kernel to be queued
-    kernel = clCreateKernel(program, "cl_shift_left", &err);
+    kernel = clCreateKernel(program, "cl_kernel", &err);
     check_error(err, "Unable to create kernel %d", err);
     //printf("after kernel");
 

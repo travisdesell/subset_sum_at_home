@@ -1,4 +1,4 @@
-__kernel void cl_shift_left(__global uint *complete, __global uint *set, __global uint *set_size, __global uint *block_size) {
+__kernel void cl_kernel(__global uint *complete, __global uint *set, __global uint *set_size, __global uint *block_size) {
     /*TODO
     implement pivot on src array.
     implement bit shifting
