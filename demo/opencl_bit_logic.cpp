@@ -49,9 +49,9 @@ void build_cl_program(const uint32_t subset_length) {
     
     #ifdef BIT_LOGIC
     //path to opencl file
-    char filename[] = "../demo/opencl_int_logic.cl";
-    #else
     char filename[] = "../demo/opencl_bit_logic.cl";
+    #else
+    char filename[] = "../demo/opencl_int_logic.cl";
     #endif
 
     fp = fopen(filename, "r");
