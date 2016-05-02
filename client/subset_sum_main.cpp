@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
         cerr << "ERROR, wrong command line arguments." << endl;
         cerr << "USAGE:" << endl;
         cerr << "\t./subset_sum <M> <N> [<i> <count>]" << endl << endl;
-        cerr << "argumetns:" << endl;
+        cerr << "arguments:" << endl;
         cerr << "\t<M>      :   The maximum value allowed in the sets." << endl;
         cerr << "\t<N>      :   The number of elements allowed in a set." << endl;
         cerr << "\t<i>      :   (optional) start at the <i>th generated subset." << endl;
