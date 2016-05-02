@@ -46,8 +46,14 @@ void check_error(cl_int err, const char* fmt, ...) {
 
 // ???? params 'max_length' and 'subset_length' are not used ????
 void build_cl_program(const uint32_t subset_length) {
+    
+    #ifdef BIT_LOGIC
     //path to opencl file
+    char filename[] = "../demo/opencl_int_logic.cl";
+    #else
     char filename[] = "../demo/opencl_bit_logic.cl";
+    #endif
+
     fp = fopen(filename, "r");
     //read in the opencl source file
     char *src_str;
